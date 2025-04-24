@@ -8,57 +8,75 @@ import {
   LinearProgress,
   TextField,
   Stack,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  Divider
+  Divider,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
+  Paper
 } from '@mui/material';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 
-const TRACK_TYPES = [
-  // Core tracks
-  { id: 'click', label: 'Click Track', core: true },
-  { id: 'piano', label: 'Piano Track', core: true },
-  { id: 'all_vocals', label: 'All Vocals', core: true },
-  // Voice parts
+const CORE_TRACKS = [
+  { id: 'click', label: 'Click Track' },
+  { id: 'piano', label: 'Piano Track' },
+  { id: 'all_vocals', label: 'All Vocals' }
+];
+
+const VOICE_PARTS = [
+  // Soprano section
   { id: 'soprano', label: 'Soprano' },
   { id: 'soprano_1', label: 'Soprano 1' },
   { id: 'soprano_2', label: 'Soprano 2' },
+  // Alto section
   { id: 'alto', label: 'Alto' },
   { id: 'alto_1', label: 'Alto 1' },
   { id: 'alto_2', label: 'Alto 2' },
+  // Tenor section
   { id: 'tenor', label: 'Tenor' },
   { id: 'tenor_1', label: 'Tenor 1' },
   { id: 'tenor_2', label: 'Tenor 2' },
+  // Bass section
   { id: 'baritone', label: 'Baritone' },
   { id: 'bass', label: 'Bass' },
   { id: 'bass_1', label: 'Bass 1' },
   { id: 'bass_2', label: 'Bass 2' },
+  // Parts
   { id: 'part_1', label: 'Part I' },
   { id: 'part_2', label: 'Part II' },
-  { id: 'part_3', label: 'Part III' },
+  { id: 'part_3', label: 'Part III' }
 ];
 
 const AudioFileUpload = () => {
-  const [selectedFile, setSelectedFile] = useState(null);
   const [songTitle, setSongTitle] = useState('');
-  const [trackType, setTrackType] = useState('');
+  const [selectedVoiceParts, setSelectedVoiceParts] = useState([]);
+  const [currentTrack, setCurrentTrack] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [completedTracks, setCompletedTracks] = useState([]);
 
-  const handleFileSelect = (event) => {
+  // Group voice parts by section
+  const voicePartSections = {
+    Soprano: VOICE_PARTS.filter(part => part.id.startsWith('soprano')),
+    Alto: VOICE_PARTS.filter(part => part.id.startsWith('alto')),
+    Tenor: VOICE_PARTS.filter(part => part.id.startsWith('tenor')),
+    Bass: VOICE_PARTS.filter(part => 
+      part.id.startsWith('bass') || part.id === 'baritone'
+    ),
+    Parts: VOICE_PARTS.filter(part => part.id.startsWith('part'))
+  };
+
+  const handleFileSelect = (trackId) => (event) => {
     const file = event.target.files[0];
     if (file && file.type.startsWith('audio/')) {
-      setSelectedFile(file);
+      setCurrentTrack({ id: trackId, file });
     } else {
       alert('Please select an audio file');
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !songTitle.trim() || !trackType) {
-      alert('Please select a file, provide a song title, and select a track type');
+    if (!currentTrack?.file || !songTitle.trim()) {
+      alert('Please select a file and provide a song title');
       return;
     }
 
@@ -67,9 +85,9 @@ const AudioFileUpload = () => {
     try {
       // Create FormData
       const formData = new FormData();
-      formData.append('file', selectedFile);
+      formData.append('file', currentTrack.file);
       formData.append('songTitle', songTitle);
-      formData.append('trackType', trackType);
+      formData.append('trackType', currentTrack.id);
 
       // Simulate upload progress
       const interval = setInterval(() => {
@@ -90,11 +108,11 @@ const AudioFileUpload = () => {
       setUploadProgress(100);
       alert('Upload successful!');
 
-      // Reset form
-      setSelectedFile(null);
-      setTrackType('');
+      // Add to completed tracks and reset current
+      setCompletedTracks([...completedTracks, currentTrack.id]);
+      setCurrentTrack(null);
       setUploadProgress(0);
-      // Keep the song title for additional uploads
+      // Keep the song title and selected voice parts for additional uploads
     } catch (error) {
       console.error('Upload failed:', error);
       alert('Upload failed. Please try again.');
@@ -120,85 +138,122 @@ const AudioFileUpload = () => {
             required
           />
 
-          <FormControl fullWidth required>
-            <InputLabel>Track Type</InputLabel>
-            <Select
-              value={trackType}
-              onChange={(e) => setTrackType(e.target.value)}
-              disabled={uploading}
-            >
-              <MenuItem disabled value="">
-                <em>Select a track type</em>
-              </MenuItem>
-              
-              {/* Core tracks */}
-              {TRACK_TYPES.filter(t => t.core).map((track) => (
-                <MenuItem key={track.id} value={track.id}>
-                  {track.label}
-                </MenuItem>
-              ))}
-              
-              <Divider sx={{ my: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Voice Parts
-                </Typography>
-              </Divider>
-              
-              {/* Voice part tracks */}
-              {TRACK_TYPES.filter(t => !t.core).map((track) => (
-                <MenuItem key={track.id} value={track.id}>
-                  {track.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {/* Core Tracks Section */}
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Required Tracks
+            </Typography>
+            <Stack spacing={2}>
+              {CORE_TRACKS.map((track) => {
+                const isCompleted = completedTracks.includes(track.id);
+                const isCurrentTrack = currentTrack?.id === track.id;
 
-          <Box>
-            <input
-              accept="audio/*"
-              style={{ display: 'none' }}
-              id="audio-file-input"
-              type="file"
-              onChange={handleFileSelect}
-            />
-            <label htmlFor="audio-file-input">
+                return (
+                  <Box key={track.id}>
+                    <input
+                      accept="audio/*"
+                      style={{ display: 'none' }}
+                      id={`audio-file-${track.id}`}
+                      type="file"
+                      onChange={handleFileSelect(track.id)}
+                      disabled={isCompleted || uploading}
+                    />
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          flex: 1,
+                          color: isCompleted ? 'success.main' : 'text.primary'
+                        }}
+                      >
+                        {track.label}
+                        {isCompleted && ' ✓'}
+                      </Typography>
+                      <label htmlFor={`audio-file-${track.id}`}>
+                        <Button
+                          variant={isCompleted ? "outlined" : "contained"}
+                          component="span"
+                          startIcon={<CloudUploadIcon />}
+                          disabled={uploading || isCompleted}
+                          size="small"
+                        >
+                          {isCompleted ? 'Uploaded' : 'Upload'}
+                        </Button>
+                      </label>
+                    </Stack>
+                    {isCurrentTrack && (
+                      <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                        Selected: {currentTrack.file.name}
+                      </Typography>
+                    )}
+                  </Box>
+                );
+              })}
+            </Stack>
+          </Paper>
+
+          {/* Voice Parts Selection */}
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Voice Parts to Include
+            </Typography>
+            <Stack spacing={2}>
+              {Object.entries(voicePartSections).map(([section, parts]) => (
+                <Box key={section}>
+                  <Typography variant="subtitle1" color="primary" gutterBottom>
+                    {section}
+                  </Typography>
+                  <FormGroup>
+                    {parts.map((part) => (
+                      <FormControlLabel
+                        key={part.id}
+                        control={
+                          <Checkbox
+                            checked={selectedVoiceParts.includes(part.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedVoiceParts([...selectedVoiceParts, part.id]);
+                              } else {
+                                setSelectedVoiceParts(
+                                  selectedVoiceParts.filter(id => id !== part.id)
+                                );
+                              }
+                            }}
+                          />
+                        }
+                        label={part.label}
+                      />
+                    ))}
+                  </FormGroup>
+                </Box>
+              ))}
+            </Stack>
+          </Paper>
+
+          {currentTrack && (
+            <Box>
               <Button
                 variant="contained"
-                component="span"
-                startIcon={<CloudUploadIcon />}
-                disabled={uploading || !songTitle.trim()}
+                color="primary"
+                onClick={handleUpload}
+                disabled={!currentTrack || !songTitle.trim() || uploading}
                 fullWidth
               >
-                Select Audio File
+                Upload {currentTrack.id === 'click' ? 'Click Track' :
+                       currentTrack.id === 'piano' ? 'Piano Track' :
+                       currentTrack.id === 'all_vocals' ? 'All Vocals' : ''}
               </Button>
-            </label>
-            {selectedFile && (
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                Selected: {selectedFile.name}
-              </Typography>
-            )}
-          </Box>
-
-          <Box>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleUpload}
-              disabled={!selectedFile || !songTitle.trim() || !trackType || uploading}
-              fullWidth
-            >
-              Upload Track
-            </Button>
             
-            {uploading && (
-              <Box sx={{ mt: 2 }}>
-                <LinearProgress variant="determinate" value={uploadProgress} />
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Uploading... {uploadProgress}%
-                </Typography>
-              </Box>
-            )}
-          </Box>
+              {uploading && (
+                <Box sx={{ mt: 2 }}>
+                  <LinearProgress variant="determinate" value={uploadProgress} />
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Uploading... {uploadProgress}%
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
         </Stack>
       </CardContent>
     </Card>
