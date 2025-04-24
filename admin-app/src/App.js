@@ -34,7 +34,7 @@ function App() {
         <AppBar position="static">
           <Toolbar>
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              DAW Admin
+              PlayEXL Admin
             </Typography>
           </Toolbar>
         </AppBar>
@@ -60,7 +60,7 @@ function App() {
         >
           <Container maxWidth="sm">
             <Typography variant="body2" color="text.secondary" align="center">
-              DAW Admin Interface © {new Date().getFullYear()}
+              PlayEXL Admin Interface © {new Date().getFullYear()}
             </Typography>
           </Container>
         </Box>

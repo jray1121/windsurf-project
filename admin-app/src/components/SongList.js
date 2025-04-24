@@ -16,19 +16,45 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  TextField
+  TextField,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Chip,
+  Stack
 } from '@mui/material';
 import {
   MoreVert as MoreVertIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  ExpandMore as ExpandMoreIcon,
+  MusicNote as MusicNoteIcon
 } from '@mui/icons-material';
 
 const SongList = () => {
   // Mock data - replace with actual API call
   const [songs, setSongs] = useState([
-    { id: 1, name: 'Demo Song 1', duration: '3:45', uploadedAt: '2025-04-23' },
-    { id: 2, name: 'Demo Song 2', duration: '4:20', uploadedAt: '2025-04-23' }
+    {
+      id: 1,
+      title: 'Amazing Grace',
+      tracks: [
+        { id: 1, type: 'click', label: 'Click Track', duration: '3:45' },
+        { id: 2, type: 'piano', label: 'Piano Track', duration: '3:45' },
+        { id: 3, type: 'soprano_1', label: 'Soprano 1', duration: '3:45' },
+        { id: 4, type: 'alto_1', label: 'Alto 1', duration: '3:45' }
+      ],
+      uploadedAt: '2025-04-23'
+    },
+    {
+      id: 2,
+      title: 'Hallelujah',
+      tracks: [
+        { id: 5, type: 'click', label: 'Click Track', duration: '4:20' },
+        { id: 6, type: 'piano', label: 'Piano Track', duration: '4:20' },
+        { id: 7, type: 'all_vocals', label: 'All Vocals', duration: '4:20' }
+      ],
+      uploadedAt: '2025-04-23'
+    }
   ]);
 
   const [anchorEl, setAnchorEl] = useState(null);
@@ -47,7 +73,7 @@ const SongList = () => {
   };
 
   const handleEditClick = () => {
-    setEditName(selectedSong.name);
+    setEditName(selectedSong.title);
     setEditDialogOpen(true);
     handleMenuClose();
   };
@@ -56,7 +82,7 @@ const SongList = () => {
     if (editName.trim()) {
       setSongs(songs.map(song =>
         song.id === selectedSong.id
-          ? { ...song, name: editName }
+          ? { ...song, title: editName }
           : song
       ));
       setEditDialogOpen(false);
@@ -80,24 +106,74 @@ const SongList = () => {
           Uploaded Songs
         </Typography>
 
-        <List>
+        <Box sx={{ mt: 2 }}>
           {songs.map((song) => (
-            <ListItem
-              key={song.id}
-              divider
-              secondaryAction={
-                <IconButton edge="end" onClick={(e) => handleMenuOpen(e, song)}>
-                  <MoreVertIcon />
-                </IconButton>
-              }
-            >
-              <ListItemText
-                primary={song.name}
-                secondary={`Duration: ${song.duration} • Uploaded: ${song.uploadedAt}`}
-              />
-            </ListItem>
+            <Accordion key={song.id} sx={{ mb: 2 }}>
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                sx={{
+                  '& .MuiAccordionSummary-content': {
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }
+                }}
+              >
+                <Typography variant="h6">{song.title}</Typography>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {song.tracks.length} tracks • {song.uploadedAt}
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMenuOpen(e, song);
+                    }}
+                  >
+                    <MoreVertIcon />
+                  </IconButton>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails>
+                <List dense>
+                  {song.tracks.map((track) => (
+                    <ListItem
+                      key={track.id}
+                      sx={{
+                        borderLeft: 2,
+                        borderColor: 'primary.main',
+                        pl: 2,
+                        mb: 1,
+                        bgcolor: 'background.paper',
+                        borderRadius: 1,
+                      }}
+                    >
+                      <ListItemText
+                        primary={
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <MusicNoteIcon fontSize="small" />
+                            <Typography>{track.label}</Typography>
+                            <Chip
+                              label={track.duration}
+                              size="small"
+                              variant="outlined"
+                            />
+                          </Stack>
+                        }
+                      />
+                      <ListItemSecondaryAction>
+                        <IconButton edge="end" size="small">
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              </AccordionDetails>
+            </Accordion>
           ))}
-        </List>
+        </Box>
 
         <Menu
           anchorEl={anchorEl}
@@ -137,7 +213,7 @@ const SongList = () => {
           <DialogTitle>Delete Song</DialogTitle>
           <DialogContent>
             <Typography>
-              Are you sure you want to delete "{selectedSong?.name}"?
+              Are you sure you want to delete "{selectedSong?.title}" and all its tracks?
             </Typography>
           </DialogContent>
           <DialogActions>
