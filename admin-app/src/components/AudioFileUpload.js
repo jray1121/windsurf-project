@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { uploadTrack } from '../services/api';
 import { 
   Box, 
   Button, 
@@ -88,34 +89,23 @@ const AudioFileUpload = () => {
       formData.append('file', currentTrack.file);
       formData.append('songTitle', songTitle);
       formData.append('trackType', currentTrack.id);
+      formData.append('selectedVoiceParts', JSON.stringify(selectedVoiceParts));
 
-      // Simulate upload progress
-      const interval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            return 100;
-          }
-          return prev + 10;
-        });
-      }, 500);
-
-      // TODO: Replace with actual API call
-      // const response = await uploadSong(formData);
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Simulate API call
-
-      clearInterval(interval);
-      setUploadProgress(100);
-      alert('Upload successful!');
-
+      // Upload the track
+      await uploadTrack(formData);
+      
       // Add to completed tracks and reset current
       setCompletedTracks([...completedTracks, currentTrack.id]);
       setCurrentTrack(null);
       setUploadProgress(0);
+      
+      // Show success message
+      alert('Upload successful!');
+      
       // Keep the song title and selected voice parts for additional uploads
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('Upload failed. Please try again.');
+      alert(`Upload failed: ${error.response?.data?.message || 'Please try again'}`);
     } finally {
       setUploading(false);
     }
