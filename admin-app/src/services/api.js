@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000/api'; // Your DAW app's API endpoint
+const API_BASE_URL = 'http://localhost:8080/api'; // API server endpoint
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -11,18 +11,32 @@ const api = axios.create({
 
 export const uploadTrack = async (formData) => {
   try {
+    // Log the FormData contents
+    console.log('FormData contents:');
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value instanceof File ? {
+        name: value.name,
+        type: value.type,
+        size: value.size
+      } : value);
+    }
+
     const response = await api.post('/tracks/upload', formData, {
       onUploadProgress: (progressEvent) => {
         const percentCompleted = Math.round(
           (progressEvent.loaded * 100) / progressEvent.total
         );
-        // You can use this for real-time progress updates
         console.log(`Upload Progress: ${percentCompleted}%`);
       },
     });
+
+    console.log('Upload response:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error uploading track:', error);
+    console.error('Error uploading track:', error.response ? {
+      status: error.response.status,
+      data: error.response.data
+    } : error.message);
     throw error;
   }
 };

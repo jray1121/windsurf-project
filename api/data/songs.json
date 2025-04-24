@@ -1,0 +1,38 @@
+[
+  {
+    "id": "40fe57f6-c92b-4db0-8bb8-01e696de0943",
+    "title": "The Ocean",
+    "voicing": "ttb",
+    "tracks": [
+      {
+        "id": "1057ae78-b910-4b59-aa85-8f9ae61160c3",
+        "type": "click",
+        "filePath": "/uploads/7103d984-7be2-487d-86ba-22d66c7c2c09.mp3",
+        "originalName": "The Ocean - CLICK.mp3",
+        "timeSignature": "4/4",
+        "beatValue": "1/4",
+        "uploadedAt": "2025-04-24T22:45:07.591Z"
+      },
+      {
+        "id": "82ee35fc-a4ae-4669-a05d-86011c5e5a4b",
+        "type": "piano",
+        "filePath": "/uploads/3b231ef7-b356-4119-9e4e-50d29e7c8e9c.mp3",
+        "originalName": "The Ocean - PIANO.mp3",
+        "timeSignature": "4/4",
+        "beatValue": "1/4",
+        "uploadedAt": "2025-04-24T22:45:07.594Z"
+      },
+      {
+        "id": "e01e59f9-99ba-435c-ae73-c8a50c108a83",
+        "type": "all_vocals",
+        "filePath": "/uploads/115ca24d-f4cd-4403-b721-1335d8b80f4d.mp3",
+        "originalName": "The Ocean - ALL PARTS.mp3",
+        "timeSignature": "4/4",
+        "beatValue": "1/4",
+        "uploadedAt": "2025-04-24T22:45:07.595Z"
+      }
+    ],
+    "createdAt": "2025-04-24T22:45:07.591Z",
+    "updatedAt": "2025-04-24T22:45:07.595Z"
+  }
+]

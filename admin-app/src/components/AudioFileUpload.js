@@ -142,39 +142,44 @@ const AudioFileUpload = ({ onUploadSuccess }) => {
   };
 
   const handleUpload = async () => {
-    if (!currentTrack?.file || !songTitle.trim()) {
-      alert('Please select a file and provide a song title');
-      return;
-    }
+    if (!songTitle.trim()) return;
 
     setUploading(true);
-    
-    try {
-      // Create FormData
-      const formData = new FormData();
-      formData.append('file', currentTrack.file);
-      formData.append('songTitle', songTitle);
-      formData.append('trackType', currentTrack.id);
-      formData.append('selectedVoiceParts', JSON.stringify(selectedParts));
-      formData.append('voicing', voicing);
+    setUploadProgress(0);
 
-      // Upload the track
-      await uploadTrack(formData);
-      
-      // Add to completed tracks and reset current
-      setCompletedTracks([...completedTracks, currentTrack.id]);
-      setCurrentTrack(null);
+    try {
+      // Upload all core tracks that have files
+      const uploadPromises = Object.entries(coreTrackFiles).map(async ([trackId, file]) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('songTitle', songTitle.trim());
+        formData.append('voicing', voicing);
+        formData.append('trackType', trackId);
+
+        console.log('Uploading track:', {
+          songTitle: songTitle.trim(),
+          voicing,
+          trackType: trackId,
+          fileName: file.name
+        });
+
+        return uploadTrack(formData);
+      });
+
+      const responses = await Promise.all(uploadPromises);
+      console.log('All uploads successful:', responses);
+
+      // Reset form
+      setCoreTrackFiles({});
       setUploadProgress(0);
-      
-      // Show success message
-      alert('Upload successful!');
-      
-      // Notify parent component
-      onUploadSuccess?.();
-      
+      setCompletedTracks([...completedTracks, ...Object.keys(coreTrackFiles)]);
+
+      // Notify parent
+      if (onUploadSuccess) {
+        onUploadSuccess(responses[0]); // Pass the first response
+      }
     } catch (error) {
       console.error('Upload failed:', error);
-      alert(`Upload failed: ${error.response?.data?.message || 'Please try again'}`);
     } finally {
       setUploading(false);
     }
@@ -384,26 +389,30 @@ const AudioFileUpload = ({ onUploadSuccess }) => {
                           >
                             {track.label}
                           </Typography>
-                          <Button
-                            variant="contained"
-                            component="label"
-                            fullWidth
-                            startIcon={<CloudUploadIcon />}
-                            size="small"
-                            sx={{
-                              borderRadius: 1,
-                              textTransform: 'none',
-                              boxShadow: 'none'
+                          <div
+                            onClick={() => {
+                              const input = document.createElement('input');
+                              input.type = 'file';
+                              input.accept = 'audio/*';
+                              input.onchange = (e) => handleFileSelect(e, track.id);
+                              input.click();
                             }}
+                            style={{ cursor: 'pointer' }}
                           >
-                            {coreTrackFiles[track.id] ? coreTrackFiles[track.id].name : 'Upload Track'}
-                            <input
-                              type="file"
-                              hidden
-                              accept="audio/*"
-                              onChange={(e) => handleFileSelect(e, track.id)}
-                            />
-                          </Button>
+                            <Button
+                              variant="contained"
+                              fullWidth
+                              startIcon={<CloudUploadIcon />}
+                              size="small"
+                              sx={{
+                                borderRadius: 1,
+                                textTransform: 'none',
+                                boxShadow: 'none'
+                              }}
+                            >
+                              {coreTrackFiles[track.id] ? coreTrackFiles[track.id].name : 'Upload Track'}
+                            </Button>
+                          </div>
                         </Stack>
                       </Paper>
                     </Grid>
@@ -485,9 +494,18 @@ const AudioFileUpload = ({ onUploadSuccess }) => {
                                   >
                                     {part.label}
                                   </Typography>
+                                  <div
+                                  onClick={() => {
+                                    const input = document.createElement('input');
+                                    input.type = 'file';
+                                    input.accept = 'audio/*';
+                                    input.onchange = (e) => handleFileSelect(e, part.id);
+                                    input.click();
+                                  }}
+                                  style={{ cursor: 'pointer' }}
+                                >
                                   <Button
                                     variant="contained"
-                                    component="label"
                                     fullWidth
                                     startIcon={<CloudUploadIcon />}
                                     size="small"
@@ -498,13 +516,8 @@ const AudioFileUpload = ({ onUploadSuccess }) => {
                                     }}
                                   >
                                     {voicePartFiles[part.id] ? voicePartFiles[part.id].name : 'Upload Track'}
-                                    <input
-                                      type="file"
-                                      hidden
-                                      accept="audio/*"
-                                      onChange={(e) => handleFileSelect(e, part.id)}
-                                    />
                                   </Button>
+                                </div>
                                 </Stack>
                               </Paper>
                             </Grid>
