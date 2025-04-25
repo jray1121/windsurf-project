@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000/api'; // Your DAW app's API endpoint
+const API_BASE_URL = 'http://localhost:8080/api'; // Your DAW app's API endpoint
 
 const api = axios.create({
   baseURL: API_BASE_URL,
