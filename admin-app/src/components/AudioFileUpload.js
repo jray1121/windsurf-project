@@ -86,6 +86,8 @@ const AudioFileUpload = ({ onUploadSuccess }) => {
   const [voicePartFiles, setVoicePartFiles] = useState({});
   const [coreTrackFiles, setCoreTrackFiles] = useState({});
   const [completedTracks, setCompletedTracks] = useState([]);
+  const [timeSignature, setTimeSignature] = useState('4/4');
+  const [noteValue, setNoteValue] = useState('quarter');
 
   // Group voice parts by section
   const voicePartSections = {
@@ -347,6 +349,24 @@ const AudioFileUpload = ({ onUploadSuccess }) => {
                       ))}
                     </Select>
                   </FormControl>
+
+                  {/* Time Signature and Note Value */}
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Time Signature</InputLabel>
+                    <Select
+                      value={timeSignature}
+                      label="Time Signature"
+                      onChange={(e) => setTimeSignature(e.target.value)}
+                    >
+                      <MenuItem value="2/4">2/4</MenuItem>
+                      <MenuItem value="3/4">3/4</MenuItem>
+                      <MenuItem value="4/4">4/4</MenuItem>
+                      <MenuItem value="6/8">6/8</MenuItem>
+                      <MenuItem value="12/8">12/8</MenuItem>
+                    </Select>
+                  </FormControl>
+
+
                 </Stack>
               </Box>
 
@@ -407,12 +427,30 @@ const AudioFileUpload = ({ onUploadSuccess }) => {
                               sx={{
                                 borderRadius: 1,
                                 textTransform: 'none',
-                                boxShadow: 'none'
+                                boxShadow: 'none',
+                                mb: track.id === 'click' ? 2 : 0
                               }}
                             >
                               {coreTrackFiles[track.id] ? coreTrackFiles[track.id].name : 'Upload Track'}
                             </Button>
                           </div>
+                          {track.id === 'click' && (
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Beat Value</InputLabel>
+                              <Select
+                                value={noteValue}
+                                label="Beat Value"
+                                onChange={(e) => setNoteValue(e.target.value)}
+                              >
+                                <MenuItem value="whole">𝅝</MenuItem>
+                                <MenuItem value="half">𝅗𝅥</MenuItem>
+                                <MenuItem value="quarter">𝅘𝅥</MenuItem>
+                                <MenuItem value="dotted_quarter">𝅘𝅥𝅭</MenuItem>
+                                <MenuItem value="eighth">♪</MenuItem>
+                              </Select>
+                            </FormControl>
+                          )}
+
                         </Stack>
                       </Paper>
                     </Grid>
