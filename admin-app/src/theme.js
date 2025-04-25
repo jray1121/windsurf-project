@@ -9,6 +9,19 @@ import { createTheme } from '@mui/material/styles';
 // - 'Outfit' - Contemporary geometric sans
 
 export const theme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#873995',
+      light: '#9c5ba8',
+      dark: '#6e2e77',
+      contrastText: '#fff',
+    },
+    background: {
+      default: '#121212',
+      paper: '#1e1e1e',
+    },
+  },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
