@@ -144,42 +144,83 @@ const AudioFileUpload = ({ onUploadSuccess }) => {
   };
 
   const handleUpload = async () => {
-    if (!songTitle.trim()) return;
+    if (!songTitle.trim() || uploading) return;
+
+    // Check if we have at least one file
+    const hasFiles = Object.keys(coreTrackFiles).length > 0 || Object.keys(voicePartFiles).length > 0;
+    if (!hasFiles) return;
 
     setUploading(true);
     setUploadProgress(0);
 
     try {
-      // Upload all core tracks that have files
-      const uploadPromises = Object.entries(coreTrackFiles).map(async ([trackId, file]) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('songTitle', songTitle.trim());
-        formData.append('voicing', voicing);
-        formData.append('trackType', trackId);
+      // Upload files one at a time
+      const allFiles = [
+        ...Object.entries(coreTrackFiles).map(([id, file]) => ({ id, file, type: 'core' })),
+        ...Object.entries(voicePartFiles).map(([id, file]) => ({ id, file, type: 'voice' }))
+      ];
 
-        console.log('Uploading track:', {
-          songTitle: songTitle.trim(),
-          voicing,
-          trackType: trackId,
+      let songId;
+      for (const { id, file, type } of allFiles) {
+        const formData = new FormData();
+        
+        // Add metadata only for the first upload or if no songId exists
+        if (!songId) {
+          formData.append('songTitle', songTitle.trim());
+          formData.append('voicing', voicing);
+          formData.append('timeSignature', timeSignature);
+          formData.append('beatValue', noteValue);
+          formData.append('composers', JSON.stringify(composers.filter(c => c.trim())));
+          formData.append('lyricists', JSON.stringify(lyricists.filter(l => l.trim())));
+          formData.append('arrangers', JSON.stringify(arrangers.filter(a => a.trim())));
+        } else {
+          formData.append('songId', songId);
+        }
+
+        // Add single file
+        formData.append('trackType', id);
+        formData.append('file', file);
+
+        console.log(`Uploading ${type} track ${id}:`, {
+          ...(songId ? { songId } : { 
+            songTitle: songTitle.trim(),
+            voicing,
+            timeSignature,
+            beatValue: noteValue,
+          }),
+          trackType: id,
           fileName: file.name
         });
 
-        return uploadTrack(formData);
-      });
-
-      const responses = await Promise.all(uploadPromises);
-      console.log('All uploads successful:', responses);
-
-      // Reset form
-      setCoreTrackFiles({});
-      setUploadProgress(0);
-      setCompletedTracks([...completedTracks, ...Object.keys(coreTrackFiles)]);
-
-      // Notify parent
-      if (onUploadSuccess) {
-        onUploadSuccess(responses[0]); // Pass the first response
+        // Upload this file
+        const response = await uploadTrack(formData);
+        console.log(`Successfully uploaded ${type} track ${id}:`, response);
+        
+        // Store the songId from the first upload
+        if (!songId && response.songId) {
+          songId = response.songId;
+        }
       }
+
+      // Call onUploadSuccess with the last response
+      if (onUploadSuccess && lastResponse) {
+        onUploadSuccess(lastResponse);
+      }
+      
+      // Reset all fields
+      setSongTitle('');
+      setVoicing('');
+      setComposers(['']);
+      setLyricists(['']);
+      setArrangers(['']);
+      setSelectedParts([]);
+      setVoicePartFiles({});
+      setCoreTrackFiles({});
+      setTimeSignature('4/4');
+      setNoteValue('quarter');
+      setCurrentTrack(null);
+      setCompletedTracks([]);
+      setUploadProgress(0);
     } catch (error) {
       console.error('Upload failed:', error);
     } finally {
@@ -578,43 +619,40 @@ const AudioFileUpload = ({ onUploadSuccess }) => {
           </Grid>
 
           {/* Upload Button and Progress */}
-          {currentTrack && (
-            <Grid item xs={12}>
-              <Paper 
-                elevation={1}
-                sx={{ 
-                  p: 2,
-                  borderRadius: 1,
-                  mt: 2
+          <Grid item xs={12}>
+            <Paper 
+              elevation={1}
+              sx={{ 
+                p: 2,
+                borderRadius: 1,
+                mt: 2
+              }}
+            >
+              <Button
+                variant="contained"
+                onClick={handleUpload}
+                disabled={!songTitle.trim() || uploading || 
+                  (Object.keys(coreTrackFiles).length === 0 && Object.keys(voicePartFiles).length === 0)}
+                fullWidth
+                size="large"
+                sx={{
+                  textTransform: 'none',
+                  py: 1
                 }}
               >
-                <Button
-                  variant="contained"
-                  onClick={handleUpload}
-                  disabled={!currentTrack || !songTitle.trim() || uploading}
-                  fullWidth
-                  size="large"
-                  sx={{
-                    textTransform: 'none',
-                    py: 1
-                  }}
-                >
-                  Upload {currentTrack.id === 'click' ? 'Click Track' :
-                         currentTrack.id === 'piano' ? 'Piano Track' :
-                         currentTrack.id === 'all_vocals' ? 'All Vocals' : ''}
-                </Button>
-              
-                {uploading && (
-                  <Box sx={{ mt: 2 }}>
-                    <LinearProgress variant="determinate" value={uploadProgress} />
-                    <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
-                      Uploading... {uploadProgress}%
-                    </Typography>
-                  </Box>
-                )}
-              </Paper>
-            </Grid>
-          )}
+                Upload Song
+              </Button>
+            
+              {uploading && (
+                <Box sx={{ mt: 2 }}>
+                  <LinearProgress variant="determinate" value={uploadProgress} />
+                  <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
+                    Uploading... {uploadProgress}%
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
+          </Grid>
         </Grid>
       </CardContent>
     </Card>

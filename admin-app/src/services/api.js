@@ -4,9 +4,6 @@ const API_BASE_URL = 'http://localhost:8080/api'; // API server endpoint
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'multipart/form-data',
-  },
 });
 
 export const uploadTrack = async (formData) => {
@@ -22,6 +19,9 @@ export const uploadTrack = async (formData) => {
     }
 
     const response = await api.post('/tracks/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
       onUploadProgress: (progressEvent) => {
         const percentCompleted = Math.round(
           (progressEvent.loaded * 100) / progressEvent.total
@@ -33,7 +33,7 @@ export const uploadTrack = async (formData) => {
     console.log('Upload response:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error uploading track:', error.response ? {
+    console.error('Error uploading song:', error.response ? {
       status: error.response.status,
       data: error.response.data
     } : error.message);
