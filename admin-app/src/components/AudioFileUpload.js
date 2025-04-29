@@ -73,7 +73,7 @@ const VOICE_PARTS = [
   { id: 'part_3', label: 'Part III' }
 ];
 
-const AudioFileUpload = ({ onUploadSuccess }) => {
+const AudioFileUpload = ({ onUploadSuccess, onSongUpdate }) => {
   const [songTitle, setSongTitle] = useState('');
   const [voicing, setVoicing] = useState('');
   const [composers, setComposers] = useState(['']);
@@ -154,59 +154,87 @@ const AudioFileUpload = ({ onUploadSuccess }) => {
     setUploadProgress(0);
 
     try {
-      // Upload files one at a time
-      const allFiles = [
-        ...Object.entries(coreTrackFiles).map(([id, file]) => ({ id, file, type: 'core' })),
-        ...Object.entries(voicePartFiles).map(([id, file]) => ({ id, file, type: 'voice' }))
-      ];
-
       let songId;
-      for (const { id, file, type } of allFiles) {
-        const formData = new FormData();
-        
-        // Add metadata only for the first upload or if no songId exists
-        if (!songId) {
+      const totalFiles = Object.keys(coreTrackFiles).length + Object.keys(voicePartFiles).length;
+      const progressIncrement = 100 / totalFiles;
+
+      // Upload core tracks first
+      for (const [id, file] of Object.entries(coreTrackFiles)) {
+        try {
+          const formData = new FormData();
           formData.append('songTitle', songTitle.trim());
           formData.append('voicing', voicing);
+          formData.append('trackType', id);
+          formData.append('file', file);
           formData.append('timeSignature', timeSignature);
           formData.append('beatValue', noteValue);
           formData.append('composers', JSON.stringify(composers.filter(c => c.trim())));
           formData.append('lyricists', JSON.stringify(lyricists.filter(l => l.trim())));
           formData.append('arrangers', JSON.stringify(arrangers.filter(a => a.trim())));
-        } else {
-          formData.append('songId', songId);
-        }
+          if (songId) {
+            formData.append('songId', songId);
+          }
 
-        // Add single file
-        formData.append('trackType', id);
-        formData.append('file', file);
-
-        console.log(`Uploading ${type} track ${id}:`, {
-          ...(songId ? { songId } : { 
+          console.log(`Uploading core track ${id}:`, {
             songTitle: songTitle.trim(),
             voicing,
+            trackType: id,
+            fileName: file.name,
             timeSignature,
-            beatValue: noteValue,
-          }),
-          trackType: id,
-          fileName: file.name
-        });
+            beatValue: noteValue
+          });
 
-        // Upload this file
-        const response = await uploadTrack(formData);
-        console.log(`Successfully uploaded ${type} track ${id}:`, response);
-        
-        // Store the songId from the first upload
-        if (!songId && response.songId) {
-          songId = response.songId;
+          const response = await uploadTrack(formData);
+          console.log(`Successfully uploaded core track ${id}:`, response);
+
+          if (!songId && response.songId) {
+            songId = response.songId;
+          }
+
+          setUploadProgress(prev => prev + progressIncrement);
+        } catch (error) {
+          console.error(`Error uploading core track ${id}:`, error);
+          setUploading(false);
+          return;
         }
       }
 
-      // Call onUploadSuccess with the last response
-      if (onUploadSuccess && lastResponse) {
-        onUploadSuccess(lastResponse);
+      // Upload voice part tracks
+      for (const [partId, file] of Object.entries(voicePartFiles)) {
+        try {
+          const formData = new FormData();
+          formData.append('songTitle', songTitle.trim());
+          formData.append('voicing', voicing);
+          formData.append('trackType', partId);
+          formData.append('file', file);
+          formData.append('timeSignature', timeSignature);
+          formData.append('beatValue', noteValue);
+          formData.append('composers', JSON.stringify(composers.filter(c => c.trim())));
+          formData.append('lyricists', JSON.stringify(lyricists.filter(l => l.trim())));
+          formData.append('arrangers', JSON.stringify(arrangers.filter(a => a.trim())));
+          if (songId) {
+            formData.append('songId', songId);
+          }
+
+          console.log(`Uploading voice part ${partId}:`, {
+            songTitle: songTitle.trim(),
+            voicing,
+            trackType: partId,
+            fileName: file.name,
+            timeSignature,
+            beatValue: noteValue
+          });
+
+          const response = await uploadTrack(formData);
+          console.log(`Successfully uploaded voice part ${partId}:`, response);
+          setUploadProgress(prev => prev + progressIncrement);
+        } catch (error) {
+          console.error(`Error uploading voice part ${partId}:`, error);
+          setUploading(false);
+          return;
+        }
       }
-      
+
       // Reset all fields
       setSongTitle('');
       setVoicing('');
@@ -221,9 +249,14 @@ const AudioFileUpload = ({ onUploadSuccess }) => {
       setCurrentTrack(null);
       setCompletedTracks([]);
       setUploadProgress(0);
+      setUploading(false);
+      
+      // Refresh the song list
+      if (onSongUpdate) {
+        onSongUpdate();
+      }
     } catch (error) {
       console.error('Upload failed:', error);
-    } finally {
       setUploading(false);
     }
   };

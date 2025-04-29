@@ -96,6 +96,7 @@ const SongList = ({ songs = [], loading = false, onSongUpdate }) => {
                 <Accordion key={song.id} sx={{ '&:first-of-type': { mt: 1 } }}>
                   <AccordionSummary 
                     expandIcon={<ExpandMoreIcon />}
+                    component="div"
                     sx={{
                       '& .MusicNoteIcon': {
                         mr: 2,

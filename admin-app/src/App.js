@@ -44,7 +44,11 @@ function App() {
               onUploadSuccess={() => {
                 // Refresh the song list after successful upload
                 getSongs().then(setSongs).catch(console.error);
-              }} 
+              }}
+              onSongUpdate={() => {
+                // Refresh the song list after successful upload
+                getSongs().then(setSongs).catch(console.error);
+              }}
             />
           </Container>
 

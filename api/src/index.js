@@ -116,6 +116,11 @@ app.post('/api/tracks/upload', upload.single('file'), (req, res) => {
       id: uuidv4(),
       title: songTitle,
       voicing,
+      timeSignature,
+      beatValue,
+      composers: req.body.composers ? JSON.parse(req.body.composers) : [],
+      lyricists: req.body.lyricists ? JSON.parse(req.body.lyricists) : [],
+      arrangers: req.body.arrangers ? JSON.parse(req.body.arrangers) : [],
       tracks: [],
       createdAt: new Date(),
       updatedAt: new Date()
@@ -123,16 +128,25 @@ app.post('/api/tracks/upload', upload.single('file'), (req, res) => {
     songs.push(song);
     console.log('Created new song:', { id: song.id, title: song.title });
   } else {
-    // Remove any existing track of the same type
-    const removedTracks = song.tracks.filter(t => t.type === trackType);
-    song.tracks = song.tracks.filter(t => t.type !== trackType);
+    // Update song metadata if provided
+    if (timeSignature) song.timeSignature = timeSignature;
+    if (beatValue) song.beatValue = beatValue;
+    if (req.body.composers) song.composers = JSON.parse(req.body.composers);
+    if (req.body.lyricists) song.lyricists = JSON.parse(req.body.lyricists);
+    if (req.body.arrangers) song.arrangers = JSON.parse(req.body.arrangers);
+    
+    // Only remove existing track if it's a core track (allow multiple voice parts)
+    if (trackType === 'click' || trackType === 'piano' || trackType === 'all_vocals') {
+      const removedTracks = song.tracks.filter(t => t.type === trackType);
+      song.tracks = song.tracks.filter(t => t.type !== trackType);
+      console.log('Updated existing song:', { 
+        id: song.id, 
+        title: song.title, 
+        removedTracks: removedTracks.map(t => ({ id: t.id, type: t.type })),
+        remainingTracks: song.tracks.map(t => ({ id: t.id, type: t.type }))
+      });
+    }
     song.updatedAt = new Date();
-    console.log('Updated existing song:', { 
-      id: song.id, 
-      title: song.title, 
-      removedTracks: removedTracks.map(t => ({ id: t.id, type: t.type })),
-      remainingTracks: song.tracks.map(t => ({ id: t.id, type: t.type }))
-    });
   }
 
   song.tracks.push({
