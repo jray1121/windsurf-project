@@ -602,6 +602,7 @@ const DAW = ({ songs = [], loading = false }) => {
                     </Button>
                   </Box>
                 </Box>
+              </Box>
 
               {loadingTrack && (
                 <Typography color="text.secondary">
