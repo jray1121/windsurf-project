@@ -31,9 +31,14 @@ const DAW = ({ songs = [], loading = false }) => {
   const audioContext = useRef(null);
   const gainNodes = useRef({});
   const [isClickTrackMuted, setIsClickTrackMuted] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(0.5); // 50% default zoom
   const audioRefs = useRef({});
   const clickTrackRef = useRef(new Audio());
   const measureUpdateRef = useRef(null);
+
+  const handleZoomChange = (newLevel) => {
+    setZoomLevel(newLevel);
+  };
 
   const stopPlayback = () => {
     setIsPlaying(false);
@@ -601,6 +606,40 @@ const DAW = ({ songs = [], loading = false }) => {
                       {isClickTrackMuted ? 'Off' : 'On'}
                     </Button>
                   </Box>
+
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    bgcolor: '#000000',
+                    p: 1,
+                    borderRadius: 1,
+                    border: '1px solid #333333'
+                  }}>
+                    <Typography sx={{ color: '#999999', fontSize: '0.875rem' }}>Zoom</Typography>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      {[0.25, 0.5, 0.75, 1].map((level) => (
+                        <Button
+                          key={level}
+                          variant="contained"
+                          size="small"
+                          onClick={() => handleZoomChange(level)}
+                          sx={{
+                            bgcolor: zoomLevel === level ? '#873995' : '#333333',
+                            color: '#ffffff',
+                            '&:hover': {
+                              bgcolor: zoomLevel === level ? '#873995' : '#444444'
+                            },
+                            minWidth: '40px',
+                            height: '24px',
+                            fontSize: '0.75rem'
+                          }}
+                        >
+                          {`${level * 100}%`}
+                        </Button>
+                      ))}
+                    </Box>
+                  </Box>
                 </Box>
               </Box>
 
@@ -624,6 +663,7 @@ const DAW = ({ songs = [], loading = false }) => {
                 onPanChange={handlePanChange}
                 isClickTrackMuted={isClickTrackMuted}
                 timeSignatureChanges={currentSong.timeSignatureChanges}
+                zoomLevel={zoomLevel}
                 onClickTrackToggle={() => {
                   setIsClickTrackMuted(!isClickTrackMuted);
                   if (clickTrackRef.current) {

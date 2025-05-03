@@ -2,7 +2,7 @@ import React from 'react';
 import { Typography } from '@mui/material';
 import TrackControls from './TrackControls';
 
-const PIXELS_PER_BEAT = 80;
+const BASE_PIXELS_PER_BEAT = 80; // Base width at 100% zoom
 const TIMELINE_HEIGHT = 40;
 const HEADER_WIDTH = 200;
 
@@ -20,7 +20,7 @@ export const formatTrackName = (name) => {
 };
 
 // Calculate pixel position for a given time considering tempo and time signatures
-const getPixelPositionFromTime = (currentTime = 0, measures = [], beatMap = []) => {
+const getPixelPositionFromTime = (currentTime = 0, measures = [], beatMap = [], zoomLevel = 1) => {
   if (!measures.length || !beatMap?.length) return 0;
   
   // Find the beats before and after current time
@@ -77,7 +77,8 @@ const getPixelPositionFromTime = (currentTime = 0, measures = [], beatMap = []) 
   return currentMeasure.startTime + Math.min(relativePosition, currentMeasure.width);
 };
 
-const getMeasuresFromBeatMap = (beatMap, timeSignatureChanges = []) => {
+const getMeasuresFromBeatMap = (beatMap, timeSignatureChanges = [], zoomLevel = 1) => {
+  const PIXELS_PER_BEAT = BASE_PIXELS_PER_BEAT * zoomLevel;
   if (!beatMap || !beatMap.length) return [];
   
   // Get the last beat to determine total measures
@@ -120,9 +121,9 @@ const getMeasuresFromBeatMap = (beatMap, timeSignatureChanges = []) => {
   });
 };
 
-const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges }) => {
-  const measures = getMeasuresFromBeatMap(beatMap, timeSignatureChanges);
-  const currentPosition = getPixelPositionFromTime(currentTime, measures, beatMap);
+const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges, zoomLevel = 1 }) => {
+  const measures = getMeasuresFromBeatMap(beatMap, timeSignatureChanges, zoomLevel);
+  const currentPosition = getPixelPositionFromTime(currentTime, measures, beatMap, zoomLevel);
   
   // Get current tempo from beatMap
   const currentBeat = beatMap?.find(beat => beat.time > currentTime) || beatMap?.[0] || { tempo: 0 };
@@ -258,7 +259,7 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges 
           style={{
             position: 'absolute',
             top: 0,
-            left: getPixelPositionFromTime(currentTime, measures, beatMap),
+            left: getPixelPositionFromTime(currentTime, measures, beatMap, zoomLevel),
             width: 2,
             height: '100%',
             backgroundColor: '#ff0000',
@@ -280,9 +281,10 @@ const TrackTimeline = ({
   onSolo,
   onVolumeChange = () => {},
   onPanChange = () => {},
-  timeSignatureChanges
+  timeSignatureChanges,
+  zoomLevel = 1
 }) => {
-  const measures = getMeasuresFromBeatMap(beatMap, timeSignatureChanges);
+  const measures = getMeasuresFromBeatMap(beatMap, timeSignatureChanges, zoomLevel);
   const containerRef = React.useRef(null);
   const totalWidth = measures.reduce((sum, measure) => sum + measure.width, 0);
   const minWidth = Math.max(totalWidth, window.innerWidth - HEADER_WIDTH); // At least window width
