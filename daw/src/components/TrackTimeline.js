@@ -133,14 +133,6 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges 
     return currentTime >= beat.time && (!nextBeat || currentTime < nextBeat.time);
   }) || { measure: 1, beat: 1, beatsInMeasure: 4 };
 
-  // Calculate debug info
-  const debugInfo = {
-    'Current Time': currentTime?.toFixed(2),
-    'Measure': currentBeatInfo.measure,
-    'Beat': currentBeatInfo.beat,
-    'Beats in Measure': currentBeatInfo.beatsInMeasure,
-    'Position (px)': currentPosition?.toFixed(2)
-  };
   const totalTimelineWidth = measures.reduce((sum, measure) => sum + measure.width, 0);
   const minWidth = Math.max(totalWidth || window.innerWidth - HEADER_WIDTH, totalTimelineWidth);
   
@@ -153,24 +145,7 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges 
       width: minWidth,
       zIndex: 10
     }}>
-      {/* Debug Window */}
-      <div style={{
-        position: 'fixed',
-        top: 10,
-        right: 10,
-        backgroundColor: 'rgba(0,0,0,0.8)',
-        color: '#fff',
-        padding: 10,
-        borderRadius: 4,
-        fontFamily: 'monospace',
-        fontSize: 12,
-        zIndex: 1000,
-        whiteSpace: 'pre'
-      }}>
-        {Object.entries(debugInfo).map(([key, value]) => 
-          `${key}: ${value}`
-        ).join('\n')}
-      </div>
+
       <div style={{
         position: 'relative',
         width: totalWidth,
