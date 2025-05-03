@@ -50,7 +50,18 @@ export const analyzeBeats = async (audioBlob, songInfo) => {
       // Detect onset if energy rises significantly above local average
       if (energy > localAverage * energyThreshold && 
           (beats.length === 0 || (i / sampleRate - beats[beats.length - 1]) > 0.1)) { // Minimum 100ms between beats
-        beats.push(i / sampleRate);
+        const beatTime = i / sampleRate;
+        beats.push(beatTime);
+        
+        // Debug first few beats
+        if (beats.length <= 5) {
+          console.log(`🎵 [BEAT DETECTION] Beat ${beats.length} detected at:`, {
+            time: beatTime,
+            energy,
+            localAverage,
+            threshold: localAverage * energyThreshold
+          });
+        }
       }
     }
     
@@ -88,24 +99,45 @@ export const analyzeBeats = async (audioBlob, songInfo) => {
 };
 
 /**
- * Maps detected beats to measures based on time signature
+ * Maps detected beats to measures based on time signature changes
  * @param {Array<number>} beats - Array of beat timestamps
- * @param {string} timeSignature - Time signature (e.g., "4/4")
- * @param {number} bpm - Detected BPM
- * @returns {Array<{measure: number, beat: number, time: number}>}
+ * @param {Array<{measure: number, timeSignature: string}>} timeSignatureChanges - Array of time signature changes
+ * @returns {Array<{measure: number, beat: number, time: number, beatsInMeasure: number}>}
  */
-export const mapBeatsToMeasures = (beats, timeSignature, bpm) => {
-  const [beatsPerMeasure] = timeSignature.split('/').map(Number);
+export const mapBeatsToMeasures = (beats, timeSignatureChanges = []) => {
+  // Initialize with default time signature if none provided
+  const defaultTimeSignature = '4/4';
+  const changes = [{measure: 1, timeSignature: defaultTimeSignature}, ...timeSignatureChanges];
+  
+  let currentBeat = 0;
+  let currentMeasure = 1;
+  let beatInMeasure = 1;
   
   return beats.map((time, index) => {
-    const totalBeats = index;
-    const measure = Math.floor(totalBeats / beatsPerMeasure) + 1;
-    const beat = (totalBeats % beatsPerMeasure) + 1;
+    // Find applicable time signature for current measure
+    const currentChange = [...changes]
+      .reverse()
+      .find(change => currentMeasure >= change.measure) || changes[0];
     
-    return {
-      measure,
-      beat,
-      time
+    // Get beats per measure from time signature
+    const beatsInMeasure = parseInt(currentChange.timeSignature.split('/')[0]);
+    
+    // Calculate beat and measure
+    if (beatInMeasure > beatsInMeasure) {
+      currentMeasure++;
+      beatInMeasure = 1;
+    }
+    
+    const result = {
+      measure: currentMeasure,
+      beat: beatInMeasure,
+      time,
+      beatsInMeasure
     };
+    
+    beatInMeasure++;
+    currentBeat++;
+    
+    return result;
   });
 };
