@@ -134,18 +134,112 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges,
     return currentTime >= beat.time && (!nextBeat || currentTime < nextBeat.time);
   }) || { measure: 1, beat: 1, beatsInMeasure: 4 };
 
-  const totalTimelineWidth = measures.reduce((sum, measure) => sum + measure.width, 0);
+  // Calculate total width based on measures and zoom level
+  const totalTimelineWidth = measures.reduce((sum, measure) => sum + measure.width, 0) * zoomLevel;
   const minWidth = Math.max(totalWidth || window.innerWidth - HEADER_WIDTH, totalTimelineWidth);
   
   return (
-    <div style={{
-      position: 'relative',
-      height: TIMELINE_HEIGHT,
-      backgroundColor: '#000000',
-      borderBottom: '1px solid #333333',
-      width: minWidth,
-      zIndex: 10
-    }}>
+    <div 
+      style={{
+        position: 'relative',
+        height: TIMELINE_HEIGHT,
+        backgroundColor: '#000000',
+        borderBottom: '1px solid #333333',
+        width: minWidth,
+        zIndex: 10,
+        overflow: 'hidden'
+      }}
+    >
+      {/* Timeline content */}
+      <div style={{
+        position: 'relative',
+        height: '100%',
+        width: '100%'
+      }}>
+        {measures.map((measure) => (
+          <React.Fragment key={measure.number}>
+            {/* Measure number */}
+            <div 
+              style={{
+                position: 'absolute',
+                left: measure.startTime * zoomLevel,
+                top: 2,
+                color: '#666666',
+                fontSize: '0.75rem',
+                fontFamily: 'monospace'
+              }}
+            >
+              {measure.number}
+            </div>
+
+            {/* Time signature if changed */}
+            {measure.timeSignature && (
+              <div 
+                style={{
+                  position: 'absolute',
+                  left: (measure.startTime + TIME_SIGNATURE_X_OFFSET) * zoomLevel,
+                  top: TIME_SIGNATURE_Y_POSITION,
+                  color: '#666666',
+                  fontSize: '0.75rem',
+                  fontFamily: 'monospace'
+                }}
+              >
+                {measure.timeSignature}
+              </div>
+            )}
+
+            {/* Measure line */}
+            <div
+              style={{
+                position: 'absolute',
+                left: measure.startTime * zoomLevel,
+                top: 0,
+                width: 1,
+                height: '100%',
+                backgroundColor: '#666666'
+              }}
+            />
+
+            {/* Beat lines */}
+            {measure.beats.map(beat => (
+              <div
+                key={`beat-${measure.number}-${beat.number}`}
+                style={{
+                  position: 'absolute',
+                  left: beat.startTime * zoomLevel,
+                  top: TIMELINE_HEIGHT / 2,
+                  width: 1,
+                  height: TIMELINE_HEIGHT / 2,
+                  backgroundColor: '#333333'
+                }}
+              />
+            ))}
+          </React.Fragment>
+        ))}
+
+        {/* Playhead */}
+        <div
+          style={{
+            position: 'absolute',
+            left: currentPosition * zoomLevel,
+            top: 0,
+            width: 1,
+            height: '100%',
+            backgroundColor: '#ff0000',
+            zIndex: 100
+          }}
+        />
+      </div>
+    </div>
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        transform: `scale(${zoomLevel}, 1)`,
+        transformOrigin: '0 0'
+      }}>
 
       <div style={{
         position: 'relative',
@@ -189,7 +283,7 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges,
             <div
               style={{
                 position: 'absolute',
-                left: measure.startTime,
+                left: measure.startTime * zoomLevel,
                 top: 0,
                 height: '100%',
                 width: 1,
@@ -206,10 +300,10 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges,
               key={`beat-${measure.number}-${beat.number}`}
               style={{
                 position: 'absolute',
-                left: beat.startTime,
-                top: 0,
-                height: '50%',
+                left: beat.startTime * zoomLevel,
+                top: TIMELINE_HEIGHT / 2,
                 width: 1,
+                height: TIMELINE_HEIGHT / 2,
                 backgroundColor: '#333333'
               }}
             />
@@ -220,13 +314,17 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges,
         {measures.map((measure) => (
           <React.Fragment key={`measure-${measure.number}`}>
             {/* Measure number */}
-            <Typography
-              variant="caption"
-              sx={{
+            <div 
+              style={{
                 position: 'absolute',
-                left: measure.startTime + 4,
-                top: 4,
-                color: '#999999'
+                left: measure.startTime * zoomLevel,
+                top: 2,
+                color: '#666666',
+                fontSize: '0.75rem',
+                fontFamily: 'monospace'
+              transform: `scale(${1/zoomLevel}, 1)`,
+              transformOrigin: '0 0'
+            }}>
               }}
             >
               {measure.number}
@@ -310,112 +408,108 @@ const TrackTimeline = ({
 
   return (
     <div style={{
-      position: 'relative',
-      backgroundColor: '#000000',
-      minHeight: 200,
-      width: '100%',
-      overflow: 'hidden',
-      zIndex: 10
+      display: 'flex',
+      height: '100%',
+      backgroundColor: '#000000'
     }}>
+      {/* Fixed header column */}
       <div style={{
+        width: HEADER_WIDTH,
         display: 'flex',
-        position: 'relative',
-        backgroundColor: '#000000'
+        flexDirection: 'column'
       }}>
-        {/* Fixed headers container */}
+        {/* Fixed header spacer for timeline */}
         <div style={{
-          width: HEADER_WIDTH,
-          flexShrink: 0,
-          zIndex: 20,
-          display: 'flex',
-          flexDirection: 'column'
+          height: TIMELINE_HEIGHT,
+          backgroundColor: '#1a1a1a',
+          borderRight: '1px solid #333333',
+          borderTop: '2px solid #333333',
+          borderBottom: '2px solid #333333'
+        }} />
+
+        {/* Fixed track headers */}
+        <div style={{
+          backgroundColor: '#1a1a1a',
+          borderRight: '1px solid #333333'
         }}>
-          {/* Fixed header spacer for timeline */}
-          <div style={{
-            height: TIMELINE_HEIGHT,
-            backgroundColor: '#1a1a1a',
-            borderRight: '1px solid #333333',
-            borderTop: '2px solid #333333',
-            borderBottom: '2px solid #333333'
-          }} />
-
-          {/* Fixed track headers */}
-          <div style={{
-            backgroundColor: '#1a1a1a',
-            borderRight: '1px solid #333333'
-          }}>
-            {tracks?.map((track) => (
-              <div
-                key={track.id}
-                style={{
-                  height: 80,
-                  borderBottom: '1px solid #333333'
-                }}
-              >
-                <TrackControls
-                  track={track}
-                  isMuted={trackStates[track.id]?.muted}
-                  isSoloed={trackStates[track.id]?.soloed}
-                  volume={trackStates[track.id]?.volume || 1}
-                  pan={trackStates[track.id]?.pan || 0}
-                  onMute={() => onMute(track.id)}
-                  onSolo={() => onSolo(track.id)}
-                  onVolumeChange={(value) => onVolumeChange(track.id, value)}
-                  onPanChange={(value) => onPanChange(track.id, value)}
-                />
-              </div>
-            ))}
-          </div>
+          {tracks?.map((track) => (
+            <div
+              key={track.id}
+              style={{
+                height: 80,
+                borderBottom: '1px solid #333333'
+              }}
+            >
+              <TrackControls
+                track={track}
+                isMuted={trackStates[track.id]?.muted}
+                isSoloed={trackStates[track.id]?.soloed}
+                volume={trackStates[track.id]?.volume || 1}
+                pan={trackStates[track.id]?.pan || 0}
+                onMute={() => onMute(track.id)}
+                onSolo={() => onSolo(track.id)}
+                onVolumeChange={(value) => onVolumeChange(track.id, value)}
+                onPanChange={(value) => onPanChange(track.id, value)}
+              />
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Scrollable content */}
-        <div 
-          ref={containerRef}
-          className="timeline-scroll"
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            backgroundColor: '#000000',
-            zIndex: 10
-          }}
-        >
-          {/* Timeline ruler */}
-          <TimelineRuler beatMap={beatMap} currentTime={currentTime} totalWidth={width} timeSignatureChanges={timeSignatureChanges} />
+      {/* Scrollable content */}
+      <div 
+        ref={containerRef}
+        className="timeline-scroll"
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          backgroundColor: '#000000',
+          zIndex: 10
+        }}
+      >
+        {/* Timeline ruler */}
+        <TimelineRuler 
+          beatMap={beatMap} 
+          currentTime={currentTime} 
+          totalWidth={width} 
+          timeSignatureChanges={timeSignatureChanges}
+          zoomLevel={zoomLevel}
+        />
 
-          {/* Scrollable tracks */}
-          <div style={{ backgroundColor: '#000000', zIndex: 10 }}>
-            {tracks?.map((track) => (
-              <div
-                key={track.id}
-                style={{
-                  height: 80,
-                  borderBottom: '1px solid #333333',
-                  backgroundColor: '#000000',
-                  position: 'relative',
-                  width: totalWidth,
-                  minWidth: minWidth,
-                  zIndex: 10
-                }}
-              >
-                {/* Grid lines */}
-                <div style={{
-                  width: totalWidth,
-                  minWidth: minWidth,
-                  height: '100%',
-                  position: 'relative',
-                  backgroundColor: '#000000',
-                  zIndex: 10
-                }}>
-                  {/* Measure grid lines */}
+        {/* Scrollable tracks */}
+        <div style={{ backgroundColor: '#000000', zIndex: 10 }}>
+          {tracks?.map((track) => (
+            <div
+              key={track.id}
+              style={{
+                height: 80,
+                borderBottom: '1px solid #333333',
+                backgroundColor: '#000000',
+                position: 'relative',
+                width: totalWidth * zoomLevel,
+                minWidth: minWidth,
+                zIndex: 10
+              }}
+            >
+              {/* Grid lines */}
+              <div style={{
+                width: totalWidth * zoomLevel,
+                minWidth: minWidth,
+                height: '100%',
+                position: 'relative',
+                backgroundColor: '#000000',
+                zIndex: 10
+              }}>
+                {/* Measure grid lines */}
                 {measures.map((measure) => (
                   <div
                     key={`grid-${measure.number}`}
                     style={{
                       position: 'absolute',
-                      left: measure.startTime,
+                      left: measure.startTime * zoomLevel,
                       top: 0,
                       height: '100%',
                       width: 1,
@@ -431,7 +525,7 @@ const TrackTimeline = ({
                       key={`grid-beat-${measure.number}-${beat.number}`}
                       style={{
                         position: 'absolute',
-                        left: beat.startTime,
+                        left: beat.startTime * zoomLevel,
                         top: 0,
                         height: '100%',
                         width: 1,
@@ -441,10 +535,9 @@ const TrackTimeline = ({
                     />
                   ))
                 )}
-                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
