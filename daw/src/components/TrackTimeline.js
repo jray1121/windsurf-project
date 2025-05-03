@@ -150,7 +150,6 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges,
         overflow: 'hidden'
       }}
     >
-      {/* Timeline content */}
       <div style={{
         position: 'relative',
         height: '100%',
@@ -231,6 +230,8 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges,
         />
       </div>
     </div>
+  );
+};
       <div style={{
         position: 'absolute',
         top: 0,
@@ -382,29 +383,25 @@ const TrackTimeline = ({
   timeSignatureChanges,
   zoomLevel = 1
 }) => {
-  const measures = getMeasuresFromBeatMap(beatMap, timeSignatureChanges, zoomLevel);
   const containerRef = React.useRef(null);
+  const measures = getMeasuresFromBeatMap(beatMap, timeSignatureChanges, zoomLevel);
   const totalWidth = measures.reduce((sum, measure) => sum + measure.width, 0);
-  const minWidth = Math.max(totalWidth, window.innerWidth - HEADER_WIDTH); // At least window width
+  const minWidth = Math.max(width || window.innerWidth - HEADER_WIDTH, totalWidth);
 
-  // Auto-scroll to follow playback
+  // Auto-scroll to keep playhead in view
   React.useEffect(() => {
     if (containerRef.current) {
       const container = containerRef.current;
-      const playheadPosition = getPixelPositionFromTime(currentTime, measures, beatMap);
+      const playheadPosition = getPixelPositionFromTime(currentTime, measures, beatMap, zoomLevel);
       const containerWidth = container.clientWidth;
       const currentScroll = container.scrollLeft;
 
-      // If playhead is getting close to the right edge, scroll to follow it
-      if (playheadPosition > currentScroll + (containerWidth * 0.7)) {
-        container.scrollLeft = playheadPosition - (containerWidth * 0.3);
-      }
-      // If playhead is getting close to the left edge, scroll to follow it
-      else if (playheadPosition < currentScroll + (containerWidth * 0.3)) {
-        container.scrollLeft = playheadPosition - (containerWidth * 0.7);
+      // Check if playhead is outside visible area
+      if (playheadPosition < currentScroll || playheadPosition > currentScroll + containerWidth) {
+        container.scrollLeft = Math.max(0, playheadPosition - containerWidth / 2);
       }
     }
-  }, [currentTime, measures]);
+  }, [currentTime, measures, beatMap, zoomLevel]);
 
   return (
     <div style={{
