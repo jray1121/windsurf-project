@@ -542,58 +542,66 @@ const DAW = ({ songs = [], loading = false }) => {
                   sx={{ 
                     display: 'flex', 
                     alignItems: 'center',
+                    gap: 2
+                  }}
+                >
+                  <Box 
+                    sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      bgcolor: '#000000',
+                      p: 1,
+                      px: 2,
+                      borderRadius: 1,
+                      border: '1px solid #333333',
+                      minWidth: 120
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ 
+                      fontFamily: 'monospace', 
+                      color: '#ffffff',
+                      fontSize: '1rem',
+                      width: '100%',
+                      textAlign: 'center',
+                      letterSpacing: '0.1em'
+                    }}>
+                      {currentMeasure}:{currentBeat}:{currentSubBeat}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
                     bgcolor: '#000000',
                     p: 1,
-                    px: 2,
                     borderRadius: 1,
-                    border: '1px solid #333333',
-                    minWidth: 120
-                  }}
-                >
-                  <Typography variant="h6" sx={{ 
-                    fontFamily: 'monospace', 
-                    color: '#ffffff',
-                    fontSize: '1rem',
-                    width: '100%',
-                    textAlign: 'center',
-                    letterSpacing: '0.1em'
+                    border: '1px solid #333333'
                   }}>
-                    {currentMeasure}:{currentBeat}:{currentSubBeat}
-                  </Typography>
+                    <Typography sx={{ color: '#999999', fontSize: '0.875rem' }}>Metronome</Typography>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => {
+                        setIsClickTrackMuted(!isClickTrackMuted);
+                        if (clickTrackRef.current) {
+                          clickTrackRef.current.muted = !isClickTrackMuted;
+                        }
+                      }}
+                      sx={{
+                        bgcolor: '#873995',
+                        color: '#ffffff',
+                        '&:hover': {
+                          bgcolor: '#873995'
+                        },
+                        minWidth: '60px',
+                        height: '24px'
+                      }}
+                    >
+                      {isClickTrackMuted ? 'Off' : 'On'}
+                    </Button>
+                  </Box>
                 </Box>
-              </Box>
-
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                bgcolor: '#1a1a1a',
-                p: 1,
-                borderRadius: 1,
-                border: '1px solid #333333'
-              }}>
-                <Typography sx={{ color: '#999999' }}>Metronome</Typography>
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={() => {
-                    setIsClickTrackMuted(!isClickTrackMuted);
-                    if (clickTrackRef.current) {
-                      clickTrackRef.current.muted = !isClickTrackMuted;
-                    }
-                  }}
-                  sx={{
-                    bgcolor: '#873995',
-                    color: '#ffffff',
-                    '&:hover': {
-                      bgcolor: '#873995'
-                    },
-                    minWidth: '60px'
-                  }}
-                >
-                  {isClickTrackMuted ? 'Off' : 'On'}
-                </Button>
-              </Box>
 
               {loadingTrack && (
                 <Typography color="text.secondary">
