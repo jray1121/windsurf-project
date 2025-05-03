@@ -144,7 +144,8 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges,
         position: 'relative',
         height: TIMELINE_HEIGHT,
         backgroundColor: '#000000',
-        borderBottom: '1px solid #333333',
+        borderTop: '1px solid #666666',
+        borderBottom: '1px solid #666666',
         width: minWidth,
         zIndex: 10,
         overflow: 'hidden'
@@ -155,13 +156,23 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges,
         height: '100%',
         width: '100%'
       }}>
+        {/* Middle divider line */}
+        <div style={{
+          position: 'absolute',
+          left: 0,
+          top: TIMELINE_HEIGHT / 2,
+          width: '100%',
+          height: 1,
+          backgroundColor: '#333333',
+          zIndex: 1
+        }} />
         {measures.map((measure) => (
           <React.Fragment key={measure.number}>
             {/* Measure number */}
             <div 
               style={{
                 position: 'absolute',
-                left: measure.startTime * zoomLevel,
+                left: (measure.startTime * zoomLevel) + 2,
                 top: 2,
                 color: '#666666',
                 fontSize: '0.75rem',
@@ -171,19 +182,21 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges,
               {measure.number}
             </div>
 
-            {/* Time signature if changed */}
-            {measure.timeSignature && (
+            {/* Time signature if first measure or if changed */}
+            {(measure.number === 1 || timeSignatureChanges?.some(change => change.measure === measure.number)) && (
               <div 
                 style={{
                   position: 'absolute',
-                  left: (measure.startTime + TIME_SIGNATURE_X_OFFSET) * zoomLevel,
-                  top: TIME_SIGNATURE_Y_POSITION,
+                  left: (measure.startTime * zoomLevel) + 2,
+                  top: TIMELINE_HEIGHT / 2,
                   color: '#666666',
                   fontSize: '0.75rem',
                   fontFamily: 'monospace'
                 }}
               >
-                {measure.timeSignature}
+                {measure.number === 1 ? '4/4' : 
+                  timeSignatureChanges
+                    ?.find(change => change.measure === measure.number)?.timeSignature}
               </div>
             )}
 
@@ -206,7 +219,7 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges,
                 style={{
                   position: 'absolute',
                   left: beat.startTime * zoomLevel,
-                  top: TIMELINE_HEIGHT / 2,
+                  top: 0,
                   width: 1,
                   height: TIMELINE_HEIGHT / 2,
                   backgroundColor: '#333333'
@@ -232,143 +245,6 @@ const TimelineRuler = ({ beatMap, currentTime, totalWidth, timeSignatureChanges,
     </div>
   );
 };
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        transform: `scale(${zoomLevel}, 1)`,
-        transformOrigin: '0 0'
-      }}>
-
-      <div style={{
-        position: 'relative',
-        width: totalWidth,
-        minWidth: minWidth,
-        height: '100%',
-        backgroundColor: '#000000'
-      }}>
-
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: 2,
-          backgroundColor: '#333333',
-          zIndex: 11
-        }} />
-        <div style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          width: '100%',
-          height: 2,
-          backgroundColor: '#333333',
-          zIndex: 11
-        }} />
-        {/* Center line */}
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: 0,
-          width: '100%',
-          height: 1,
-          backgroundColor: '#333333',
-          zIndex: 11
-        }} />
-        {/* Measure lines and time signatures */}
-        {measures.map((measure) => (
-          <React.Fragment key={`measure-${measure.number}`}>
-            <div
-              style={{
-                position: 'absolute',
-                left: measure.startTime * zoomLevel,
-                top: 0,
-                height: '100%',
-                width: 1,
-                backgroundColor: '#666666'
-              }}
-            />
-          </React.Fragment>
-        ))}
-
-        {/* Beat lines */}
-        {measures.map(measure => 
-          measure.beats.map(beat => (
-            <div
-              key={`beat-${measure.number}-${beat.number}`}
-              style={{
-                position: 'absolute',
-                left: beat.startTime * zoomLevel,
-                top: TIMELINE_HEIGHT / 2,
-                width: 1,
-                height: TIMELINE_HEIGHT / 2,
-                backgroundColor: '#333333'
-              }}
-            />
-          ))
-        )}
-
-        {/* Measure numbers and time signature */}
-        {measures.map((measure) => (
-          <React.Fragment key={`measure-${measure.number}`}>
-            {/* Measure number */}
-            <div 
-              style={{
-                position: 'absolute',
-                left: measure.startTime * zoomLevel,
-                top: 2,
-                color: '#666666',
-                fontSize: '0.75rem',
-                fontFamily: 'monospace'
-              transform: `scale(${1/zoomLevel}, 1)`,
-              transformOrigin: '0 0'
-            }}>
-              }}
-            >
-              {measure.number}
-            </Typography>
-            
-            {/* Time signatures */}
-            {(measure.number === 1 || timeSignatureChanges?.some(change => change.measure === measure.number)) && (
-              <Typography
-                variant="caption"
-                sx={{
-                  position: 'absolute',
-                  left: measure.startTime + TIME_SIGNATURE_X_OFFSET,
-                  top: TIME_SIGNATURE_Y_POSITION,
-                  color: '#999999',
-                  fontFamily: 'monospace',
-                  fontWeight: 'bold'
-                }}
-              >
-                {measure.number === 1 ? '4/4' : 
-                  timeSignatureChanges
-                    .find(change => change.measure === measure.number)?.timeSignature}
-              </Typography>
-            )}
-
-          </React.Fragment>
-        ))}
-
-        {/* Playhead */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: getPixelPositionFromTime(currentTime, measures, beatMap, zoomLevel),
-            width: 2,
-            height: '100%',
-            backgroundColor: '#ff0000',
-            zIndex: 12
-          }}
-        />
-      </div>
-    </div>
-  );
-};
 
 const TrackTimeline = ({ 
   tracks, 
@@ -380,7 +256,11 @@ const TrackTimeline = ({
   onSolo,
   onVolumeChange = () => {},
   onPanChange = () => {},
-  timeSignatureChanges,
+  timeSignatureChanges = [
+    { measure: 1, timeSignature: '4/4' },
+    { measure: 5, timeSignature: '3/4' },
+    { measure: 9, timeSignature: '6/8' }
+  ],
   zoomLevel = 1
 }) => {
   const containerRef = React.useRef(null);
