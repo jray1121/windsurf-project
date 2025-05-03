@@ -547,10 +547,17 @@ const DAW = ({ songs = [], loading = false }) => {
                     px: 2,
                     borderRadius: 1,
                     border: '1px solid #333333',
-                    minWidth: 100
+                    minWidth: 120
                   }}
                 >
-                  <Typography variant="h6" style={{ fontFamily: 'monospace', color: '#ffffff' }}>
+                  <Typography variant="h6" sx={{ 
+                    fontFamily: 'monospace', 
+                    color: '#ffffff',
+                    fontSize: '1rem',
+                    width: '100%',
+                    textAlign: 'center',
+                    letterSpacing: '0.1em'
+                  }}>
                     {currentMeasure}:{currentBeat}:{currentSubBeat}
                   </Typography>
                 </Box>
