@@ -517,8 +517,8 @@ const DAW = ({ songs = [], loading = false }) => {
                   size="medium"
                   disabled={loadingTrack}
                   sx={{ 
-                    '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.08)' },
-                    color: '#1976d2'
+                    '&:hover': { bgcolor: 'rgba(135, 57, 149, 0.08)' },
+                    color: '#873995'
                   }}
                 >
                   {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
@@ -529,8 +529,8 @@ const DAW = ({ songs = [], loading = false }) => {
                   size="medium"
                   disabled={loadingTrack}
                   sx={{ 
-                    '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.08)' },
-                    color: '#1976d2'
+                    '&:hover': { bgcolor: 'rgba(135, 57, 149, 0.08)' },
+                    color: '#873995'
                   }}
                 >
                   <StopIcon />
@@ -550,13 +550,7 @@ const DAW = ({ songs = [], loading = false }) => {
                     minWidth: 100
                   }}
                 >
-                  <Typography variant="h6" sx={{ 
-                    fontFamily: 'monospace', 
-                    color: '#1976d2',
-                    fontSize: '1rem',
-                    textAlign: 'center',
-                    width: '100%'
-                  }}>
+                  <Typography variant="h6" style={{ fontFamily: 'monospace', color: '#ffffff' }}>
                     {currentMeasure}:{currentBeat}:{currentSubBeat}
                   </Typography>
                 </Box>
@@ -582,10 +576,10 @@ const DAW = ({ songs = [], loading = false }) => {
                     }
                   }}
                   sx={{
-                    bgcolor: isClickTrackMuted ? '#333333' : '#873995',
+                    bgcolor: '#873995',
                     color: '#ffffff',
                     '&:hover': {
-                      bgcolor: isClickTrackMuted ? '#444444' : '#873995'
+                      bgcolor: '#873995'
                     },
                     minWidth: '60px'
                   }}
