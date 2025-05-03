@@ -1,0 +1,542 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { analyzeBeats, mapBeatsToMeasures } from '../utils/audioAnalysis';
+import TrackTimeline from './TrackTimeline';
+import AudioTest from './AudioTest';
+import {
+  Box,
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Button,
+  Container,
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
+import StopIcon from '@mui/icons-material/Stop';
+import SongList from './SongList';
+import { getTrackFile } from '../services/api';
+import SongInfo from './SongInfo';
+
+const DAW = ({ songs = [], loading = false }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [currentSong, setCurrentSong] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [loadingTrack, setLoadingTrack] = useState(false);
+  const [currentMeasure, setCurrentMeasure] = useState(1);
+  const [currentBeat, setCurrentBeat] = useState(1);
+  const [currentSubBeat, setCurrentSubBeat] = useState(1);
+  const [beatMap, setBeatMap] = useState(null);
+  const [trackStates, setTrackStates] = useState({});
+  const audioContext = useRef(null);
+  const gainNodes = useRef({});
+  const panNodes = useRef({});
+  const [isClickTrackMuted, setIsClickTrackMuted] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(0.5);
+  const [jumpToMeasure, setJumpToMeasure] = useState('');
+  const [holdPosition, setHoldPosition] = useState(false);
+  const audioRefs = useRef({});
+  const clickTrackRef = useRef(new Audio());
+  const measureUpdateRef = useRef(null);
+
+  const handleZoomChange = (delta) => {
+    const newZoom = Math.max(0.25, Math.min(1, zoomLevel + delta));
+    setZoomLevel(newZoom);
+  };
+
+  const handleJumpToMeasure = (measureNumber) => {
+    if (!beatMap || !measureNumber) return;
+
+    // Get the last measure number from the beat map
+    const lastMeasure = beatMap[beatMap.length - 1]?.measure;
+    if (!lastMeasure) return;
+
+    // Validate measure number
+    const targetMeasure = parseInt(measureNumber);
+    if (targetMeasure < 1 || targetMeasure > lastMeasure) {
+      console.log(`Invalid measure number: ${targetMeasure}. Must be between 1 and ${lastMeasure}`);
+      return;
+    }
+
+    // Find the first beat of the target measure
+    const targetBeat = beatMap.find(beat => beat.measure === parseInt(measureNumber) && beat.beat === 1);
+    if (!targetBeat) {
+      console.log('Measure not found:', measureNumber);
+      return;
+    }
+
+    // Set the time for all audio elements
+    if (clickTrackRef.current) {
+      clickTrackRef.current.currentTime = targetBeat.time;
+    }
+    Object.values(audioRefs.current).forEach(audio => {
+      if (audio) {
+        audio.currentTime = targetBeat.time;
+      }
+    });
+
+    // Update measure display
+    updateMeasureDisplay(targetBeat.time);
+
+    // Only clear the input if not holding position
+    if (!holdPosition) {
+      setJumpToMeasure('');
+    }
+  };
+
+  const stopPlayback = (resetPosition = true) => {
+    setIsPlaying(false);
+    if (clickTrackRef.current) {
+      clickTrackRef.current.pause();
+      if (resetPosition) {
+        clickTrackRef.current.currentTime = 0;
+      }
+    }
+    Object.values(audioRefs.current).forEach(audio => {
+      if (audio && typeof audio.pause === 'function') {
+        audio.pause();
+        if (resetPosition) {
+          audio.currentTime = 0;
+        }
+      }
+    });
+    if (resetPosition) {
+      resetMeasureCounter();
+    }
+  };
+
+  const handleSongSelect = async (song) => {
+    // Log raw song data first
+    console.log('Raw song data:', {
+      timeSignature: song.timeSignature,
+      timeSignatureChanges: song.timeSignatureChanges,
+      rawChangesType: typeof song.timeSignatureChanges
+    });
+
+    // Try parsing if it's a string
+    if (typeof song.timeSignatureChanges === 'string') {
+      try {
+        song.timeSignatureChanges = JSON.parse(song.timeSignatureChanges);
+        console.log('Parsed time signature changes:', song.timeSignatureChanges);
+      } catch (e) {
+        console.error('Failed to parse time signature changes:', e);
+      }
+    }
+
+    // Stop any current playback
+    stopPlayback();
+
+    // Reset audio context and nodes
+    if (audioContext.current) {
+      await audioContext.current.close();
+    }
+    audioContext.current = new (window.AudioContext || window.webkitAudioContext)();
+    gainNodes.current = {};
+    panNodes.current = {};
+    audioRefs.current = {};
+
+    // Update state
+    setCurrentSong(song);
+    setLoadingTrack(true);
+    setBeatMap(null);
+    setTrackStates(prev => {
+      const newStates = {};
+      song.tracks.forEach(track => {
+        newStates[track.id] = {
+          ...prev[track.id],
+          muted: false,
+          solo: false,
+          volume: prev[track.id]?.volume || 1,
+          pan: prev[track.id]?.pan || 0
+        };
+      });
+      return newStates;
+    });
+
+    try {
+      // Load click track first
+      const clickTrack = song.tracks.find(track => track.type === 'click');
+      if (clickTrack) {
+        const clickTrackUrl = await getTrackFile(song.id, clickTrack.id);
+        if (clickTrackUrl) {
+          clickTrackRef.current.src = clickTrackUrl;
+          await new Promise((resolve, reject) => {
+            clickTrackRef.current.onloadeddata = resolve;
+            clickTrackRef.current.onerror = reject;
+          });
+
+          // Analyze beats after click track is loaded
+          const audioBuffer = await fetch(clickTrackUrl)
+            .then(response => response.arrayBuffer())
+            .then(arrayBuffer => audioContext.current.decodeAudioData(arrayBuffer));
+
+          console.log('Starting beat analysis...');
+          const beats = await analyzeBeats(audioBuffer);
+          console.log('Beat analysis complete:', beats);
+
+          const beatMapResult = mapBeatsToMeasures(beats, song.timeSignature, song.timeSignatureChanges);
+          console.log('Generated beat map:', beatMapResult);
+          setBeatMap(beatMapResult);
+        }
+      }
+
+      // Load other tracks
+      const otherTracks = song.tracks.filter(track => track.type !== 'click');
+      await Promise.all(otherTracks.map(async track => {
+        try {
+          const trackUrl = await getTrackFile(song.id, track.id);
+          if (!trackUrl) {
+            console.error(`No URL returned for track ${track.id}`);
+            return;
+          }
+
+          // Create audio element
+          const audio = new Audio();
+          audio.src = trackUrl;
+          audioRefs.current[track.id] = audio;
+
+          // Create audio nodes
+          const source = audioContext.current.createMediaElementSource(audio);
+          const gainNode = audioContext.current.createGain();
+          const panNode = audioContext.current.createStereoPanner();
+
+          // Connect nodes
+          source
+            .connect(panNode)
+            .connect(gainNode)
+            .connect(audioContext.current.destination);
+
+          // Store nodes
+          gainNodes.current[track.id] = gainNode;
+          panNodes.current[track.id] = panNode;
+
+          // Set initial values
+          gainNode.gain.value = trackStates[track.id]?.volume || 1;
+          panNode.pan.value = trackStates[track.id]?.pan || 0;
+
+          // Wait for audio to load
+          await new Promise((resolve, reject) => {
+            audio.onloadeddata = resolve;
+            audio.onerror = reject;
+          });
+
+        } catch (error) {
+          console.error(`Error loading track ${track.id}:`, error);
+        }
+      }));
+
+      setLoadingTrack(false);
+    } catch (error) {
+      console.error('Error loading tracks:', error);
+      setLoadingTrack(false);
+    }
+  };
+
+  const updateMeasureDisplay = (currentTime) => {
+    if (!beatMap) return;
+
+    // Find the current beat
+    const currentBeatInfo = beatMap.find(beat => 
+      beat.time <= currentTime && 
+      (!beatMap[beatMap.indexOf(beat) + 1] || beatMap[beatMap.indexOf(beat) + 1].time > currentTime)
+    );
+
+    if (currentBeatInfo) {
+      setCurrentMeasure(currentBeatInfo.measure);
+      setCurrentBeat(currentBeatInfo.beat);
+      setCurrentSubBeat(currentBeatInfo.subBeat);
+    }
+  };
+
+  const startMeasureCounter = () => {
+    if (measureUpdateRef.current) return;
+
+    measureUpdateRef.current = setInterval(() => {
+      if (clickTrackRef.current) {
+        updateMeasureDisplay(clickTrackRef.current.currentTime);
+      }
+    }, 10); // Update every 10ms
+  };
+
+  const stopMeasureCounter = () => {
+    if (measureUpdateRef.current) {
+      clearInterval(measureUpdateRef.current);
+      measureUpdateRef.current = null;
+    }
+  };
+
+  const resetMeasureCounter = () => {
+    setCurrentMeasure(1);
+    setCurrentBeat(1);
+    setCurrentSubBeat(1);
+  };
+
+  const togglePlayback = () => {
+    if (!currentSong) return;
+
+    if (!isPlaying) {
+      // Start playback
+      if (audioContext.current.state === 'suspended') {
+        audioContext.current.resume();
+      }
+
+      // Play all unmuted tracks
+      Object.entries(audioRefs.current).forEach(([trackId, audio]) => {
+        if (audio && shouldTrackPlay(trackId)) {
+          audio.play().catch(error => {
+            console.error(`Error playing track ${trackId}:`, error);
+          });
+        }
+      });
+
+      // Play click track if not muted
+      if (clickTrackRef.current && !isClickTrackMuted) {
+        clickTrackRef.current.play().catch(error => {
+          console.error('Error playing click track:', error);
+        });
+      }
+
+      setIsPlaying(true);
+      startMeasureCounter();
+    } else {
+      // Pause playback
+      Object.values(audioRefs.current).forEach(audio => {
+        if (audio) {
+          audio.pause();
+        }
+      });
+      if (clickTrackRef.current) {
+        clickTrackRef.current.pause();
+      }
+      setIsPlaying(false);
+      stopMeasureCounter();
+    }
+  };
+
+  const shouldTrackPlay = (trackId) => {
+    const trackState = trackStates[trackId];
+    if (!trackState) return true;
+
+    // If the track is muted, it should not play
+    if (trackState.muted) return false;
+
+    // If any track is soloed...
+    const anySoloed = Object.values(trackStates).some(state => state.solo);
+    
+    // ...then this track should only play if it's soloed
+    if (anySoloed) return trackState.solo;
+
+    // If no track is soloed, play all unmuted tracks
+    return true;
+  };
+
+  const handleVolumeChange = (trackId, value) => {
+    setTrackStates(prev => ({
+      ...prev,
+      [trackId]: {
+        ...prev[trackId],
+        volume: value
+      }
+    }));
+
+    if (gainNodes.current[trackId]) {
+      gainNodes.current[trackId].gain.setValueAtTime(
+        shouldTrackPlay(trackId) ? value : 0,
+        audioContext.current.currentTime
+      );
+    }
+  };
+
+  const handlePanChange = (trackId, value) => {
+    setTrackStates(prev => ({
+      ...prev,
+      [trackId]: {
+        ...prev[trackId],
+        pan: value
+      }
+    }));
+
+    if (panNodes.current[trackId]) {
+      panNodes.current[trackId].pan.setValueAtTime(
+        value,
+        audioContext.current.currentTime
+      );
+    }
+  };
+
+  const toggleTrackMute = (trackId) => {
+    setTrackStates(prev => {
+      // Calculate new state
+      const newStates = {
+        ...prev,
+        [trackId]: {
+          ...prev[trackId],
+          muted: !prev[trackId].muted,
+          // If we're unmuting, also unsolo
+          solo: !prev[trackId].muted ? false : prev[trackId].solo
+        }
+      };
+
+      // Get the gain node for this track
+      const gainNode = gainNodes.current[trackId];
+      if (gainNode) {
+        // Calculate if the track should play
+        const shouldPlay = !newStates[trackId].muted && 
+          (!Object.values(newStates).some(state => state.solo) || newStates[trackId].solo);
+
+        // Set the gain
+        gainNode.gain.setValueAtTime(
+          shouldPlay ? (newStates[trackId].volume || 1) : 0,
+          audioContext.current.currentTime
+        );
+      }
+
+      return newStates;
+    });
+  };
+
+  const toggleTrackSolo = (trackId) => {
+    setTrackStates(prev => {
+      // Calculate new state - just toggle solo for this track
+      const newStates = {
+        ...prev,
+        [trackId]: {
+          ...prev[trackId],
+          solo: !prev[trackId].solo,
+          // If we're soloing, also unmute
+          muted: !prev[trackId].solo ? false : prev[trackId].muted
+        }
+      };
+
+      // Update all tracks' gain nodes based on new state
+      Object.entries(newStates).forEach(([id, trackState]) => {
+        const gainNode = gainNodes.current[id];
+        if (gainNode) {
+          // A track should play if:
+          // 1. It's not muted, AND
+          // 2. Either no tracks are soloed, OR this track is soloed
+          const newShouldPlay = !trackState.muted && 
+            (!Object.values(newStates).some(state => state.solo) || trackState.solo);
+
+          gainNodes.current[id].gain.setValueAtTime(
+            newShouldPlay ? (trackState.volume || 1) : 0,
+            audioContext.current.currentTime
+          );
+        }
+      });
+
+      return newStates;
+    });
+  };
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: '#000000' }}>
+      <AppBar position="static">
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="menu"
+            onClick={() => setMenuOpen(true)}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            PlayEXL
+          </Typography>
+        </Toolbar>
+      </AppBar>
+
+      <SongList
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        songs={songs}
+        loading={loading}
+        onSongSelect={handleSongSelect}
+      />
+
+      <Box sx={{ flexGrow: 1, overflow: 'hidden', position: 'relative' }}>
+        {currentSong ? (
+          <Box sx={{ height: '100%', bgcolor: '#121212', p: 2 }}>
+            <SongInfo
+              title={currentSong.title}
+              composers={currentSong.composers || []}
+              lyricists={currentSong.lyricists || []}
+              arrangers={currentSong.arrangers || []}
+            />
+
+            {/* Transport Controls */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+              <Button
+                variant="contained"
+                onClick={togglePlayback}
+                startIcon={isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+                disabled={loadingTrack}
+              >
+                {isPlaying ? 'Pause' : 'Play'}
+              </Button>
+              <Button
+                variant="contained"
+                onClick={() => stopPlayback(true)}
+                startIcon={<StopIcon />}
+                disabled={loadingTrack}
+              >
+                Stop
+              </Button>
+            </Box>
+
+            {/* Audio Test Component */}
+            {currentSong && (
+              <Box sx={{ mb: 2, p: 2, bgcolor: '#111', borderRadius: 1 }}>
+                <AudioTest 
+                  tracks={currentSong.tracks.filter(track => track.type !== 'click')} 
+                  songId={currentSong.id} 
+                />
+              </Box>
+            )}
+
+            {/* Timeline and Tracks */}
+            {currentSong && (
+              <TrackTimeline 
+                tracks={currentSong.tracks.filter(track => track.type !== 'click')}
+                songId={currentSong.id}
+                beatMap={beatMap}
+                currentTime={clickTrackRef.current?.currentTime || 0}
+                trackStates={trackStates}
+                width={800} // Fixed width for testing
+                onMute={toggleTrackMute}
+                onSolo={toggleTrackSolo}
+                onVolumeChange={handleVolumeChange}
+                onPanChange={handlePanChange}
+                isClickTrackMuted={isClickTrackMuted}
+                timeSignatureChanges={currentSong.timeSignatureChanges}
+                zoomLevel={zoomLevel}
+                onClickTrackToggle={() => {
+                  setIsClickTrackMuted(!isClickTrackMuted);
+                  if (clickTrackRef.current) {
+                    clickTrackRef.current.muted = !isClickTrackMuted;
+                  }
+                }}
+              />
+            )}
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+            <Typography variant="h5" gutterBottom>
+              Welcome to PlayEXL
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => setMenuOpen(true)}
+            >
+              Select a Song
+            </Button>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+export default DAW;

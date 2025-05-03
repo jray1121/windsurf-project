@@ -4,26 +4,45 @@ import { formatTrackName } from './TrackTimeline';
 import VolumeDown from '@mui/icons-material/VolumeDown';
 import { styled } from '@mui/material/styles';
 
-// Custom styled circular pan knob
+// Custom styled pan slider
 const PanSlider = styled(Slider)({
+  '& .MuiSlider-mark': {
+    width: 2,
+    height: 8,
+    backgroundColor: '#666',
+  },
+  '& .MuiSlider-markActive': {
+    backgroundColor: 'currentColor',
+  },
   width: 60,
+  padding: '10px 0',
+  '& .MuiSlider-rail': {
+    opacity: 0.3,
+    height: 3
+  },
+  '& .MuiSlider-track': {
+    height: 3,
+    border: 'none'
+  },
   '& .MuiSlider-thumb': {
     width: 12,
     height: 12,
-  },
-  '& .MuiSlider-rail': {
-    opacity: 0.3
+    '&:before': {
+      boxShadow: '0 2px 12px 0 rgba(0,0,0,0.4)'
+    }
   }
 });
 
 // Track type to color mapping
+const VOICE_TRACKS = ['tenor_1', 'tenor_2', 'bass_1'];
+
 const trackColors = {
   click: '#666666',
   piano: '#4A90E2',
   all_vocals: '#D35400',
   tenor_1: '#27AE60',
   tenor_2: '#8E44AD',
-  bass: '#C0392B'
+  bass_1: '#C0392B'
 };
 
 const TrackControls = ({ 
@@ -53,7 +72,7 @@ const TrackControls = ({
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 2,
+        justifyContent: 'space-between',
         mb: 1
       }}>
         <Typography 
@@ -61,47 +80,60 @@ const TrackControls = ({
             color: '#ffffff',
             fontSize: '0.9rem',
             fontWeight: 500,
-            width: '80px',
-            flexShrink: 0
+            flexGrow: 1
           }}
         >
           {formatTrackName(track.type)}
         </Typography>
 
-        {/* Mute/Solo Buttons */}
-        <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
-          <IconButton
-            size="small"
-            onClick={onMute}
-            sx={{
-              width: 24,
-              height: 24,
-              color: isMuted ? '#ff4444' : '#ffffff',
-              backgroundColor: isMuted ? '#440000' : '#333333',
-              '&:hover': {
-                backgroundColor: isMuted ? '#550000' : '#444444',
-              },
-              fontSize: '0.75rem'
-            }}
-          >
-            M
-          </IconButton>
-          <IconButton
-            size="small"
-            onClick={onSolo}
-            sx={{
-              width: 24,
-              height: 24,
-              color: isSoloed ? '#44ff44' : '#ffffff',
-              backgroundColor: isSoloed ? '#004400' : '#333333',
-              '&:hover': {
-                backgroundColor: isSoloed ? '#005500' : '#444444',
-              },
-              fontSize: '0.75rem'
-            }}
-          >
-            S
-          </IconButton>
+        {/* Right side controls container */}
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 1,
+          width: 50  // Width of the pan buttons
+        }}>
+          {/* Mute/Solo Buttons */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 0.25,
+            flexShrink: 0,
+            ml: 0.5
+          }}>
+            <IconButton
+              size="small"
+              onClick={onSolo}
+              sx={{
+                width: 24,
+                height: 24,
+                color: isSoloed ? '#44ff44' : '#ffffff',
+                backgroundColor: isSoloed ? '#004400' : '#333333',
+                '&:hover': {
+                  backgroundColor: isSoloed ? '#005500' : '#444444',
+                },
+                fontSize: '0.75rem'
+              }}
+            >
+              S
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={onMute}
+              sx={{
+                width: 24,
+                height: 24,
+                color: isMuted ? '#ff4444' : '#ffffff',
+                backgroundColor: isMuted ? '#440000' : '#333333',
+                '&:hover': {
+                  backgroundColor: isMuted ? '#550000' : '#444444',
+                },
+                fontSize: '0.75rem'
+              }}
+            >
+              M
+            </IconButton>
+          </Box>
         </Box>
       </Box>
 
@@ -140,29 +172,76 @@ const TrackControls = ({
           />
         </Box>
 
-        {/* Pan Control */}
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center',
-          gap: 0.5,
-          width: '60px'
-        }}>
-          <Typography sx={{ color: '#666', fontSize: '0.75rem', mr: 0.5 }}>
-            L
-          </Typography>
-          <PanSlider
-            size="small"
-            min={-1}
-            max={1}
-            step={0.01}
-            value={pan}
-            onChange={(e, newValue) => onPanChange(newValue)}
-            sx={{ color: trackColor }}
-          />
-          <Typography sx={{ color: '#666', fontSize: '0.75rem', ml: 0.5 }}>
-            R
-          </Typography>
-        </Box>
+        {/* Pan Control - only for voice tracks */}
+        {VOICE_TRACKS.includes(track.type) && (
+          <Box sx={{ 
+            display: 'flex', 
+            flexShrink: 0,
+            border: '1px solid #444444',
+            borderRadius: 1,
+            overflow: 'hidden'
+          }}>
+            <IconButton
+              size="small"
+              onClick={() => onPanChange(-1)}
+              sx={{
+                width: 14,
+                height: 14,
+                minWidth: 14,
+                color: pan === -1 ? trackColor : '#666666',
+                backgroundColor: pan === -1 ? `${trackColor}22` : '#333333',
+                '&:hover': {
+                  backgroundColor: pan === -1 ? `${trackColor}33` : '#444444',
+                },
+                borderRadius: 0,
+                fontSize: '0.65rem',
+                p: 0
+              }}
+            >
+              L
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={() => onPanChange(0)}
+              sx={{
+                width: 14,
+                height: 14,
+                minWidth: 14,
+                color: pan === 0 ? trackColor : '#666666',
+                backgroundColor: pan === 0 ? `${trackColor}22` : '#333333',
+                '&:hover': {
+                  backgroundColor: pan === 0 ? `${trackColor}33` : '#444444',
+                },
+                borderRadius: 0,
+                borderLeft: '1px solid #444444',
+                borderRight: '1px solid #444444',
+                fontSize: '0.65rem',
+                p: 0
+              }}
+            >
+              C
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={() => onPanChange(1)}
+              sx={{
+                width: 14,
+                height: 14,
+                minWidth: 14,
+                color: pan === 1 ? trackColor : '#666666',
+                backgroundColor: pan === 1 ? `${trackColor}22` : '#333333',
+                '&:hover': {
+                  backgroundColor: pan === 1 ? `${trackColor}33` : '#444444',
+                },
+                borderRadius: 0,
+                fontSize: '0.65rem',
+                p: 0
+              }}
+            >
+              R
+            </IconButton>
+          </Box>
+        )}
       </Box>
     </Box>
   );
