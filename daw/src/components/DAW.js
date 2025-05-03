@@ -582,10 +582,10 @@ const DAW = ({ songs = [], loading = false }) => {
                     }
                   }}
                   sx={{
-                    bgcolor: isClickTrackMuted ? '#333333' : '#1976d2',
+                    bgcolor: isClickTrackMuted ? '#333333' : '#873995',
                     color: '#ffffff',
                     '&:hover': {
-                      bgcolor: isClickTrackMuted ? '#444444' : '#1565c0'
+                      bgcolor: isClickTrackMuted ? '#444444' : '#873995'
                     },
                     minWidth: '60px'
                   }}
