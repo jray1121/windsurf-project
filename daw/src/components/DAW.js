@@ -31,13 +31,13 @@ const DAW = ({ songs = [], loading = false }) => {
   const audioContext = useRef(null);
   const gainNodes = useRef({});
   const [isClickTrackMuted, setIsClickTrackMuted] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(0.5); // 50% default zoom
+  const [visibleMeasures, setVisibleMeasures] = useState(8); // Default to 8 measures visible
   const audioRefs = useRef({});
   const clickTrackRef = useRef(new Audio());
   const measureUpdateRef = useRef(null);
 
-  const handleZoomChange = (newLevel) => {
-    setZoomLevel(newLevel);
+  const handleZoomChange = (measures) => {
+    setVisibleMeasures(measures);
   };
 
   const stopPlayback = () => {
@@ -499,14 +499,16 @@ const DAW = ({ songs = [], loading = false }) => {
               arranger={currentSong.arranger}
             />
 
-            {/* Transport Controls */}
+            {/* Main Controls Area */}
             <Box sx={{ 
               mb: 3, 
               display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              width: '100%'
+              alignItems: 'flex-start', 
+              gap: 2,
+              width: '100%',
+              justifyContent: 'space-between'
             }}>
+              {/* Left Side: Transport Controls */}
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -543,25 +545,18 @@ const DAW = ({ songs = [], loading = false }) => {
 
                 <Box sx={{ mx: 1, width: 1, bgcolor: '#333333', height: 24 }} />
 
-                <Box 
-                  sx={{ 
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  {/* Counter Display */}
+                  <Box sx={{ 
                     display: 'flex', 
                     alignItems: 'center',
-                    gap: 2
-                  }}
-                >
-                  <Box 
-                    sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center',
-                      bgcolor: '#000000',
-                      p: 1,
-                      px: 2,
-                      borderRadius: 1,
-                      border: '1px solid #333333',
-                      minWidth: 120
-                    }}
-                  >
+                    bgcolor: '#000000',
+                    p: 1,
+                    px: 2,
+                    borderRadius: 1,
+                    border: '1px solid #333333',
+                    minWidth: 120
+                  }}>
                     <Typography variant="h6" sx={{ 
                       fontFamily: 'monospace', 
                       color: '#ffffff',
@@ -573,81 +568,56 @@ const DAW = ({ songs = [], loading = false }) => {
                       {currentMeasure}:{currentBeat}:{currentSubBeat}
                     </Typography>
                   </Box>
-
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1,
-                    bgcolor: '#000000',
-                    p: 1,
-                    borderRadius: 1,
-                    border: '1px solid #333333'
-                  }}>
-                    <Typography sx={{ color: '#999999', fontSize: '0.875rem' }}>Metronome</Typography>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={() => {
-                        setIsClickTrackMuted(!isClickTrackMuted);
-                        if (clickTrackRef.current) {
-                          clickTrackRef.current.muted = !isClickTrackMuted;
-                        }
-                      }}
-                      sx={{
-                        bgcolor: '#873995',
-                        color: '#ffffff',
-                        '&:hover': {
-                          bgcolor: '#873995'
-                        },
-                        minWidth: '60px',
-                        height: '24px'
-                      }}
-                    >
-                      {isClickTrackMuted ? 'Off' : 'On'}
-                    </Button>
-                  </Box>
-
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 1,
-                    bgcolor: '#000000',
-                    p: 1,
-                    borderRadius: 1,
-                    border: '1px solid #333333'
-                  }}>
-                    <Typography sx={{ color: '#999999', fontSize: '0.875rem' }}>Zoom</Typography>
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      {[0.25, 0.5, 0.75, 1].map((level) => (
-                        <Button
-                          key={level}
-                          variant="contained"
-                          size="small"
-                          onClick={() => handleZoomChange(level)}
-                          sx={{
-                            bgcolor: zoomLevel === level ? '#873995' : '#333333',
-                            color: '#ffffff',
-                            '&:hover': {
-                              bgcolor: zoomLevel === level ? '#873995' : '#444444'
-                            },
-                            minWidth: '40px',
-                            height: '24px',
-                            fontSize: '0.75rem'
-                          }}
-                        >
-                          {`${level * 100}%`}
-                        </Button>
-                      ))}
-                    </Box>
-                  </Box>
                 </Box>
               </Box>
+            </Box>
 
-              {loadingTrack && (
-                <Typography color="text.secondary">
-                  Loading track...
-                </Typography>
-              )}
+            {loadingTrack && (
+              <Typography color="text.secondary">
+                Loading track...
+              </Typography>
+            )}
+
+            {/* Zoom Controls */}
+            <Box sx={{ 
+              position: 'fixed',
+              top: 140,
+              right: 20,
+              height: 48, // Match transport bar height
+              zIndex: 1000,
+              display: 'flex', 
+              alignItems: 'center',
+              bgcolor: '#000000',
+              px: 1.5,
+              borderRadius: 1,
+              border: '1px solid #333333',
+              gap: 2
+            }}>
+              <Typography sx={{ color: '#999999', fontSize: '0.875rem' }}>View</Typography>
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                {[4, 8, 12, 16].map((measures) => (
+                  <Button
+                    key={measures}
+                    variant={visibleMeasures === measures ? 'contained' : 'outlined'}
+                    onClick={() => handleZoomChange(measures)}
+                    sx={{
+                      bgcolor: visibleMeasures === measures ? '#873995' : '#333333',
+                      color: '#ffffff',
+                      '&:hover': {
+                        bgcolor: visibleMeasures === measures ? '#873995' : '#444444'
+                      },
+                      minWidth: '45px',
+                      height: '36px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      p: 0.5
+                    }}
+                  >
+                    <Typography sx={{ lineHeight: 1, fontSize: '0.95rem' }}>{measures}</Typography>
+                    <Typography sx={{ lineHeight: 1, fontSize: '0.65rem' }}>bars</Typography>
+                  </Button>
+                ))}
+              </Box>
             </Box>
 
             {/* Timeline and Tracks */}
@@ -663,7 +633,7 @@ const DAW = ({ songs = [], loading = false }) => {
                 onPanChange={handlePanChange}
                 isClickTrackMuted={isClickTrackMuted}
                 timeSignatureChanges={currentSong.timeSignatureChanges}
-                zoomLevel={zoomLevel}
+                visibleMeasures={visibleMeasures}
                 onClickTrackToggle={() => {
                   setIsClickTrackMuted(!isClickTrackMuted);
                   if (clickTrackRef.current) {
